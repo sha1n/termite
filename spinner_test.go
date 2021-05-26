@@ -81,19 +81,15 @@ func assertSpinnerCharSequence(t *testing.T, fakeTerminal Terminal) {
 	readSequence := func() string {
 		startTime := time.Now()
 		for {
-			s, _ := termOutput.ReadString('\n')
-			if s == "" {
-				continue
+			s, _ := termOutput.ReadString(TermControlEraseLine[len(TermControlEraseLine)-1]) // read everything you got
+			if strippedString := strings.Trim(s, TermControlEraseLine); strippedString != "" {
+				return strippedString
 			}
-			strippedString := strings.TrimSpace(s)
-			strippedString = strings.Trim(strippedString, TermControlEraseLine)
 
 			// guard again infinite loop
 			if time.Now().After(startTime.Add(time.Second * 30)) {
 				return ""
 			}
-
-			return strippedString
 		}
 	}
 
