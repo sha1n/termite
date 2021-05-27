@@ -23,7 +23,6 @@ type bar struct {
 	maxTicks    int
 	ticks       int
 	writer      io.StringWriter
-	cursor      Cursor
 	width       int
 	leftBorder  string
 	rightBorder string
@@ -44,7 +43,6 @@ func NewProgressBar(terminal Terminal, maxTicks int, width int, leftBorder rune,
 		maxTicks:    maxTicks,
 		ticks:       0,
 		writer:      terminal,
-		cursor:      NewCursor(terminal),
 		width:       min(width, terminal.Width()-7), // 7 = 2 borders, 3 digits, % sign + 1 padding char
 		leftBorder:  string(leftBorder),
 		rightBorder: string(rightBorder),
@@ -71,10 +69,6 @@ func (b *bar) Tick() bool {
 		return false
 	}
 
-	// return to overwrite the previous progress bar only if it exists
-	if b.ticks > 0 {
-		b.cursor.Up(1)
-	}
 	b.ticks++
 
 	totalChars := b.width
@@ -84,15 +78,12 @@ func (b *bar) Tick() bool {
 
 	b.writer.WriteString(
 		fmt.Sprintf(
-			"%s%s%s%s%s %d%%%s",
+			"%s%s%s%s%s %d%%\r",
 			TermControlEraseLine,
 			b.leftBorder, strings.Repeat(b.fill, charsToFill),
 			strings.Repeat(" ", spaceChars),
 			b.rightBorder,
 			int(percent*100),
-			// this ensures neater end of line when the program ends
-			// with a progress bar and no line feed is entered.
-			TermControlCRLF,
 		),
 	)
 
@@ -142,8 +133,6 @@ func (b *bar) Start() (tick TickFn, cancel context.CancelFunc, err error) {
 		for {
 			select {
 			case <-ctx.Done():
-				for b.Tick() {
-				}
 				return
 
 			case <-events:
