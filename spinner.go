@@ -94,13 +94,6 @@ func (s *spinner) Start() (cancel context.CancelFunc, err error) {
 	return cancel, err
 }
 
-func (s *spinner) isActive() bool {
-	s.mx.Lock()
-	defer s.mx.Unlock()
-
-	return s.active
-}
-
 // Stop stops the spinner and displays the specified message
 func (s *spinner) Stop(message string) (err error) {
 	s.mx.Lock()
@@ -120,6 +113,7 @@ func (s *spinner) Stop(message string) (err error) {
 func (s *spinner) printExitMessage(message string) {
 	s.writer.WriteString(TermControlEraseLine)
 	s.writer.WriteString(message)
+	s.writer.WriteString("\r\n")
 }
 
 func createSpinnerRing() *ring.Ring {
@@ -135,4 +129,11 @@ func createSpinnerRing() *ring.Ring {
 	r = r.Next()
 
 	return r
+}
+
+func (s *spinner) isActive() bool {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	return s.active
 }

@@ -39,7 +39,7 @@ func demo(t termite.Terminal) {
 }
 
 func demoMatrix(t termite.Terminal) {
-	printTitle("Matrix", t)
+	printTitle("Matrix Layout", t)
 
 	m := termite.NewMatrix(t)
 	cancel := m.Start()
@@ -123,9 +123,9 @@ func demoProgressBars(t termite.Terminal) {
 func demoConcurrentProgressBars(t termite.Terminal) {
 	printTitle("Concurrent tasks progress", t)
 
-	b1 := termite.NewProgressBar(t, 1000, t.Width()*1/4, '\u258F', '\u2595', '\u2587')
-	b2 := termite.NewProgressBar(t, 1000, t.Width()*1/2, '\u258F', '\u2595', '\u2587')
-	b3 := termite.NewProgressBar(t, 1000, t.Width()*3/4, '\u258F', '\u2595', '\u2587')
+	b1 := termite.NewProgressBar(t, 1000, t.Width()*1/8, '\u258F', '\u2595', '\u2587')
+	b2 := termite.NewProgressBar(t, 1000, t.Width()*1/4, '\u258F', '\u2595', '\u2587')
+	b3 := termite.NewProgressBar(t, 1000, t.Width()*1/2, '\u258F', '\u2595', '\u2587')
 	b4 := termite.NewProgressBar(t, 1000, t.Width(), '\u258F', '\u2595', '\u2591')
 
 	t1, _, _ := b1.Start()

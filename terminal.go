@@ -43,17 +43,10 @@ type term struct {
 	outLock   *sync.Mutex
 }
 
-// NewTerminal creates a instance of Terminal
-func NewTerminal(autoFlush bool) Terminal {
-	return &term{
-		Out:       bufio.NewWriter(StdoutWriter),
-		Err:       bufio.NewWriter(StderrWriter),
-		autoFlush: autoFlush,
-		outLock:   &sync.Mutex{},
-	}
-}
-
-func (t *term) Width() (width int) {
+// GetTerminalWidth returns the current terminal width.
+// If no TTY returns 0
+// If it fails to get the width it panics with an error.
+func GetTerminalWidth() (width int) {
 	if !Tty {
 		return 0
 	}
@@ -66,7 +59,10 @@ func (t *term) Width() (width int) {
 	panic(errors.New("can't get terminal width"))
 }
 
-func (t *term) Height() (height int) {
+// GetTerminalHeight returns the current terminal height.
+// If no TTY returns 0
+// If it fails to get the width it panics with an error.
+func GetTerminalHeight() (height int) {
 	if !Tty {
 		return 0
 	}
@@ -77,6 +73,24 @@ func (t *term) Height() (height int) {
 
 	// FIXME: we probably need to check whether we have a terminal and handle that earlier.
 	panic(errors.New("can't get terminal height"))
+}
+
+// NewTerminal creates a instance of Terminal
+func NewTerminal(autoFlush bool) Terminal {
+	return &term{
+		Out:       bufio.NewWriter(StdoutWriter),
+		Err:       bufio.NewWriter(StderrWriter),
+		autoFlush: autoFlush,
+		outLock:   &sync.Mutex{},
+	}
+}
+
+func (t *term) Width() (width int) {
+	return GetTerminalWidth()
+}
+
+func (t *term) Height() (height int) {
+	return GetTerminalHeight()
 }
 
 func (t *term) StdOut() io.Writer {

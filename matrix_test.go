@@ -58,8 +58,8 @@ func TestWriterLineInterface(t *testing.T) {
 	example := generateRandomString()
 
 	matrix1, cancel1 := startMatrix()
-	defer cancel1() 
-	
+	defer cancel1()
+
 	matrix2, cancel2 := startMatrix()
 	defer cancel2()
 
@@ -72,7 +72,7 @@ func TestWriterLineInterface(t *testing.T) {
 func assertEventualSequence(t *testing.T, matrix Matrix, examples []string) {
 	contantsAllExamplesInOrderFn := func() bool {
 		return strings.Contains(
-			matrix.Terminal().(*fakeTerm).Out.String(),
+			matrix.StringWriter().(*fakeTerm).Out.String(),
 			expectedOutputSequenceFor(examples),
 		)
 	}
