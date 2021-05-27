@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 )
@@ -20,8 +21,7 @@ type Spinner interface {
 }
 
 type spinner struct {
-	terminal Terminal
-	cursor   Cursor
+	writer io.StringWriter
 	interval time.Duration
 	mx       *sync.RWMutex
 	active   bool
@@ -29,9 +29,9 @@ type spinner struct {
 }
 
 // NewSpinner creates a new Spinner with the specified update interval
-func NewSpinner(t Terminal, interval int32) Spinner {
+func NewSpinner(writer io.StringWriter, interval int32) Spinner {
 	return &spinner{
-		terminal: t,
+		writer: writer,
 		interval: time.Duration(interval),
 		mx:       &sync.RWMutex{},
 		active:   false,
@@ -40,8 +40,8 @@ func NewSpinner(t Terminal, interval int32) Spinner {
 }
 
 // NewDefaultSpinner creates a new Spinner with a default update interval
-func NewDefaultSpinner(t Terminal) Spinner {
-	return NewSpinner(t, 500)
+func NewDefaultSpinner(writer io.StringWriter) Spinner {
+	return NewSpinner(writer, 500)
 }
 
 // Start starts the spinner in the background and returns a cancellation handle and an error in case the spinner is already running.
@@ -84,7 +84,7 @@ func (s *spinner) Start() (cancel context.CancelFunc, err error) {
 
 			case <-timer.C:
 				spinring = spinring.Next()
-				s.terminal.OverwriteLine(fmt.Sprintf("%s", spinring.Value))
+				s.writer.WriteString(fmt.Sprintf("%s%s", TermControlEraseLine, spinring.Value))
 			}
 		}
 	}()
@@ -118,8 +118,8 @@ func (s *spinner) Stop(message string) (err error) {
 }
 
 func (s *spinner) printExitMessage(message string) {
-	s.terminal.EraseLine()
-	s.terminal.Println(message)
+	s.writer.WriteString(TermControlEraseLine)
+	s.writer.WriteString(message)
 }
 
 func createSpinnerRing() *ring.Ring {

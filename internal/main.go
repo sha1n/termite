@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -26,15 +27,34 @@ func main() {
 }
 
 func demo(t termite.Terminal) {
-
 	c := termite.NewCursor(t)
 	c.Hide()
 	defer c.Show()
 
+	demoMatrix(t)
 	demoSpinner(t)
 	demoCursor(t)
 	demoProgressBars(t)
 	demoConcurrentProgressBars(t)
+}
+
+func demoMatrix(t termite.Terminal) {
+	printTitle("Matrix", t)
+
+	m := termite.NewMatrix(t)
+	cancel := m.Start()
+
+	lines := []io.StringWriter{
+		m.NewLineStringWriter(), m.NewLineStringWriter(), m.NewLineStringWriter(), m.NewLineStringWriter(), m.NewLineStringWriter(),
+	}
+
+	for i := 0; i < 100; i++ {
+		time.Sleep(time.Millisecond * 10)
+		lines[i%len(lines)].WriteString(fmt.Sprintf("- Matrix Line -> version %d", i+1))
+	}
+
+	cancel()
+	t.Println("")
 }
 
 func printTitle(s string, t termite.Terminal) {
@@ -44,7 +64,6 @@ func printTitle(s string, t termite.Terminal) {
 	t.Println(fmt.Sprintf(" %s ", color.GreenString(strings.Title(s))))
 	t.Println(border)
 	t.Println("")
-
 }
 
 func demoSpinner(t termite.Terminal) {

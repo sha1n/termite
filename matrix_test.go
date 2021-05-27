@@ -18,9 +18,9 @@ func TestMatrixWritesToTerminalOutput(t *testing.T) {
 	matrix, cancel := startMatrix()
 	defer cancel()
 
-	matrix.NewLine().WriteString(examples[0])
-	matrix.NewLine().WriteString(examples[1])
-	matrix.NewLine().WriteString(examples[2])
+	matrix.NewLineStringWriter().WriteString(examples[0])
+	matrix.NewLineStringWriter().WriteString(examples[1])
+	matrix.NewLineStringWriter().WriteString(examples[2])
 
 	assertEventualSequence(t, matrix, examples)
 }
@@ -31,11 +31,11 @@ func TestMatrixUpdatesTerminalOutput(t *testing.T) {
 	matrix, cancel := startMatrix()
 	defer cancel()
 
-	matrix.NewLine().WriteString(examples[0])
-	line2 := matrix.NewLine()
+	matrix.NewLineStringWriter().WriteString(examples[0])
+	line2 := matrix.NewLineStringWriter()
 	line2.WriteString(examples[1])
 	examples[1] = generateRandomString()
-	matrix.NewLine().WriteString(examples[2])
+	matrix.NewLineStringWriter().WriteString(examples[2])
 	line2.WriteString(examples[1])
 
 	assertEventualSequence(t, matrix, examples)
@@ -47,11 +47,26 @@ func TestMatrixStructure(t *testing.T) {
 	matrix, cancel := startMatrix()
 	defer cancel()
 
-	matrix.NewLine().WriteString(examples[0])
-	matrix.NewLine().WriteString(examples[1])
-	matrix.NewLine().WriteString(examples[2])
+	matrix.NewLineStringWriter().WriteString(examples[0])
+	matrix.NewLineStringWriter().WriteString(examples[1])
+	matrix.NewLineStringWriter().WriteString(examples[2])
 
 	assert.Equal(t, examples, matrix.(*terminalMatrix).lines)
+}
+
+func TestWriterLineInterface(t *testing.T) {
+	example := generateRandomString()
+
+	matrix1, cancel1 := startMatrix()
+	defer cancel1() 
+	
+	matrix2, cancel2 := startMatrix()
+	defer cancel2()
+
+	matrix1.NewLineStringWriter().WriteString(example)
+	matrix2.NewLineWriter().Write([]byte(example))
+
+	assert.Equal(t, matrix1.(*terminalMatrix).lines, matrix2.(*terminalMatrix).lines)
 }
 
 func assertEventualSequence(t *testing.T, matrix Matrix, examples []string) {
