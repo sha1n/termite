@@ -43,15 +43,15 @@ func (t *fakeTerm) StdErr() io.Writer {
 }
 
 func (t *fakeTerm) Print(e interface{}) {
-	t.writeString(fmt.Sprintf("%v", e))
+	t.WriteString(fmt.Sprintf("%v", e))
 }
 
 func (t *fakeTerm) Println(e interface{}) {
-	t.writeString(fmt.Sprintf("%v\r\n", e))
+	t.WriteString(fmt.Sprintf("%v\r\n", e))
 }
 
 func (t *fakeTerm) EraseLine() {
-	t.writeString(TermControlEraseLine)
+	t.WriteString(TermControlEraseLine)
 }
 
 func (t *fakeTerm) OverwriteLine(e interface{}) {
@@ -62,13 +62,9 @@ func (t *fakeTerm) Clear() {
 	t.Out.Reset()
 }
 
-func (t *fakeTerm) writeString(s string) (n int) {
+func (t *fakeTerm) WriteString(s string) (n int, err error) {
 	t.outLock.Lock()
 	defer t.outLock.Unlock()
 
-	if n, err := t.Out.WriteString(s); err == nil {
-		return n
-	}
-
-	return 0
+	return t.Out.WriteString(s)
 }
