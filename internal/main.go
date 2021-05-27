@@ -90,17 +90,17 @@ func demoCursor(t termite.Terminal) {
 
 	time.Sleep(time.Second * 1)
 	cursor.Up(3)
-	t.OverwriteLine(fmtTaskStatus("A", taskDoneMarkUniChar))
+	t.Print(termite.TermControlEraseLine + fmtTaskStatus("A", taskDoneMarkUniChar))
 	cursor.Down(3)
 
 	time.Sleep(time.Millisecond * 50)
 	cursor.Up(1)
-	t.OverwriteLine(fmtTaskStatus("C", taskDoneMarkUniChar))
+	t.Print(termite.TermControlEraseLine + fmtTaskStatus("C", taskDoneMarkUniChar))
 	cursor.Down(1)
 
 	time.Sleep(time.Millisecond * 50)
 	cursor.Up(2)
-	t.OverwriteLine(fmtTaskStatus("B", taskDoneMarkUniChar))
+	t.Print(termite.TermControlEraseLine + fmtTaskStatus("B", taskDoneMarkUniChar))
 	cursor.Down(2)
 
 	time.Sleep(time.Millisecond * 50)

@@ -21,7 +21,7 @@ type Spinner interface {
 }
 
 type spinner struct {
-	writer io.StringWriter
+	writer   io.StringWriter
 	interval time.Duration
 	mx       *sync.RWMutex
 	active   bool
@@ -31,7 +31,7 @@ type spinner struct {
 // NewSpinner creates a new Spinner with the specified update interval
 func NewSpinner(writer io.StringWriter, interval int32) Spinner {
 	return &spinner{
-		writer: writer,
+		writer:   writer,
 		interval: time.Duration(interval),
 		mx:       &sync.RWMutex{},
 		active:   false,
