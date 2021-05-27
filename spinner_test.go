@@ -8,10 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	timeout  = time.Second * 10
+	interval = time.Nanosecond
+)
+
 func TestSpinnerCharSequence(t *testing.T) {
 	fakeTerminal := NewFakeTerminal(80, 80)
 
-	spinner := NewSpinner(fakeTerminal, 1)
+	spinner := NewSpinner(fakeTerminal, "", interval)
 	cancel, err := spinner.Start()
 	defer cancel()
 
@@ -24,7 +29,7 @@ func TestSpinnerCharSequence(t *testing.T) {
 func TestSpinnerCancellation(t *testing.T) {
 	fakeTerminal := NewFakeTerminal(80, 80)
 
-	spin := NewSpinner(fakeTerminal, 1)
+	spin := NewSpinner(fakeTerminal, "", interval)
 	cancel, _ := spin.Start()
 
 	assertSpinnerCharSequence(t, fakeTerminal)
@@ -36,7 +41,7 @@ func TestSpinnerCancellation(t *testing.T) {
 func TestSpinnerStartAlreadyRunning(t *testing.T) {
 	fakeTerminal := NewFakeTerminal(80, 80)
 
-	spin := NewSpinner(fakeTerminal, 1)
+	spin := NewSpinner(fakeTerminal, "", interval)
 	cancel, _ := spin.Start()
 	defer cancel()
 
@@ -47,7 +52,7 @@ func TestSpinnerStartAlreadyRunning(t *testing.T) {
 func TestSpinnerStopAlreadyStopped(t *testing.T) {
 	fakeTerminal := NewFakeTerminal(80, 80)
 
-	spin := NewSpinner(fakeTerminal, 1)
+	spin := NewSpinner(fakeTerminal, "", interval)
 	spin.Start()
 	err := spin.Stop("")
 	assert.NoError(t, err)
@@ -55,26 +60,83 @@ func TestSpinnerStopAlreadyStopped(t *testing.T) {
 	assert.Error(t, spin.Stop(""), "expected error")
 }
 
-func assertStoppedEventually(t *testing.T, fakeTerminal Terminal, spinner *spinner) {
-	termOutput := (fakeTerminal.(*fakeTerm)).Out
-	startTime := time.Now()
+func TestSpinnerStopMessage(t *testing.T) {
+	expectedStopMessage := generateRandomString()
+	fakeTerminal := NewFakeTerminal(80, 80)
 
-	for spinner.isActive() {
-		// guard against infinite loop
-		if time.Now().After(startTime.Add(spinner.interval + time.Second)) {
-			break
-		}
-	}
+	spin := NewSpinner(fakeTerminal, "", interval)
+	spin.Start()
+	err := spin.Stop(expectedStopMessage)
+	assert.NoError(t, err)
 
-	termOutput.Reset() // clear the buffer
-	assert.False(t, spinner.isActive())
-
-	time.Sleep(spinner.interval * 10)
-	assert.Error(t, termOutput.UnreadByte())
+	assertBufferEventuallyContains(t, fakeTerminal, expectedStopMessage)
 }
 
-func assertSpinnerCharSequence(t *testing.T, fakeTerminal Terminal) {
-	termOutput := (fakeTerminal.(*fakeTerm)).Out
+func TestSpinnerTitle(t *testing.T) {
+	expectedTitle := generateRandomString()
+	fakeTerminal := NewFakeTerminal(80, 80)
+
+	spin := NewSpinner(fakeTerminal, expectedTitle, interval)
+	cancel, _ := spin.Start()
+	defer cancel()
+
+	assertBufferEventuallyContains(t, fakeTerminal, expectedTitle)
+}
+
+func TestSpinnerSetTitle(t *testing.T) {
+	expectedInitialTitle := generateRandomString()
+	expectedUpdatedTitle := generateRandomString()
+	fakeTerminal := NewFakeTerminal(80, 80)
+
+	spin := NewSpinner(fakeTerminal, expectedInitialTitle, interval)
+	cancel, _ := spin.Start()
+	defer cancel()
+
+	assertBufferEventuallyContains(t, fakeTerminal, expectedInitialTitle)
+	
+	spin.SetTitle(expectedUpdatedTitle)
+	
+	assertBufferEventuallyContains(t, fakeTerminal, expectedUpdatedTitle)
+}
+
+func assertBufferEventuallyContains(t *testing.T, fakeTerminal *fakeTerm, expected string) {
+	assert.Eventually(
+		t,
+		bufferContains(fakeTerminal, expected),
+		timeout,
+		interval,
+	)
+}
+
+func bufferContains(fakeTerminal *fakeTerm, expected string) func() bool {
+	return func() bool {
+		return strings.Contains(fakeTerminal.Out.String(), expected)
+	}
+}
+
+func assertStoppedEventually(t *testing.T, fakeTerminal *fakeTerm, spinner *spinner) {
+	termOutput := fakeTerminal.Out
+
+	assert.Eventually(
+		t,
+		func() bool { return !spinner.isActiveSafe() },
+		timeout,
+		interval,
+	)
+
+	termOutput.Reset() // clear the buffer
+
+	assert.Eventually(
+		t,
+		func() bool { return termOutput.UnreadByte() != nil },
+		timeout,
+		spinner.interval,
+	)
+}
+
+// TODO can this be simplified?
+func assertSpinnerCharSequence(t *testing.T, fakeTerminal *fakeTerm) {
+	termOutput := fakeTerminal.Out
 	readChars := make([]string, 4)
 	readCharsCount := 0
 
