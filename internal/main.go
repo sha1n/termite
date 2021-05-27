@@ -68,10 +68,12 @@ func printTitle(s string, t termite.Terminal) {
 func demoSpinner(t termite.Terminal) {
 	printTitle("Spinner progress indicator", t)
 
-	spinner := termite.NewSpinner(t, 50)
+	spinner := termite.NewSpinner(t, "Running...", 100)
 	if _, e := spinner.Start(); e == nil {
-		time.Sleep(time.Second)
-		spinner.Stop(" - Done " + taskDoneMarkUniChar)
+		time.Sleep(time.Second * 1)
+		spinner.SetTitle("Finishing...")
+		time.Sleep(time.Second * 1)
+		spinner.Stop("- Done " + taskDoneMarkUniChar)
 		t.Println("")
 	}
 }
@@ -80,7 +82,7 @@ func demoCursor(t termite.Terminal) {
 	printTitle("Cursor back tracking and line rewrites", t)
 
 	fmtTaskStatus := func(name, status string) string {
-		return fmt.Sprintf(" - Task %s - %s", name, status)
+		return fmt.Sprintf("- Task %s %s", name, status)
 	}
 
 	cursor := termite.NewCursor(t)
