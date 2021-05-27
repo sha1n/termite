@@ -12,7 +12,6 @@ import (
 
 const taskDoneMarkUniChar = "\u2705"
 const splash = `
-
  ____  ____  ____  _  _  __  ____  ____    ____  ____  _  _   __  
 (_  _)(  __)(  _ \( \/ )(  )(_  _)(  __)  (    \(  __)( \/ ) /  \ 
   )(   ) _)  )   // \/ \ )(   )(   ) _)    ) D ( ) _) / \/ \(  O )
@@ -69,9 +68,9 @@ func printTitle(s string, t termite.Terminal) {
 func demoSpinner(t termite.Terminal) {
 	printTitle("Spinner progress indicator", t)
 
-	spinner := termite.NewSpinner(t, 100)
+	spinner := termite.NewSpinner(t, 50)
 	if _, e := spinner.Start(); e == nil {
-		time.Sleep(time.Second * 2)
+		time.Sleep(time.Second)
 		spinner.Stop(" - Done " + taskDoneMarkUniChar)
 		t.Println("")
 	}
@@ -94,17 +93,17 @@ func demoCursor(t termite.Terminal) {
 	t.OverwriteLine(fmtTaskStatus("A", taskDoneMarkUniChar))
 	cursor.Down(3)
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 50)
 	cursor.Up(1)
 	t.OverwriteLine(fmtTaskStatus("C", taskDoneMarkUniChar))
 	cursor.Down(1)
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 50)
 	cursor.Up(2)
 	t.OverwriteLine(fmtTaskStatus("B", taskDoneMarkUniChar))
 	cursor.Down(2)
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 50)
 
 	t.Println("")
 }
@@ -114,27 +113,30 @@ func demoProgressBars(t termite.Terminal) {
 
 	pb := termite.NewDefaultProgressBar(t, 20)
 	for pb.Tick() {
-		time.Sleep(time.Millisecond * 50)
+		time.Sleep(time.Millisecond * 10)
 	}
 
-	t.Println("")
+	t.Println("\n")
 }
 
 func demoConcurrentProgressBars(t termite.Terminal) {
 	printTitle("Concurrent tasks progress", t)
+
+	cursor := termite.NewCursor(t)
 
 	b1 := termite.NewProgressBar(t, 1000, t.Width()*1/8, '\u258F', '\u2595', '\u2587')
 	b2 := termite.NewProgressBar(t, 1000, t.Width()*1/4, '\u258F', '\u2595', '\u2587')
 	b3 := termite.NewProgressBar(t, 1000, t.Width()*1/2, '\u258F', '\u2595', '\u2587')
 	b4 := termite.NewProgressBar(t, 1000, t.Width(), '\u258F', '\u2595', '\u2591')
 
+	t.Print("\n\n\n\n") // allocate 4 lines
+	cursor.Up(4)        // return to start position
+
 	t1, _, _ := b1.Start()
 	t2, _, _ := b2.Start()
 	t3, _, _ := b3.Start()
 	t4, _, _ := b4.Start()
 
-	cursor := termite.NewCursor(t)
-	cursor.Hide()
 	for i := 0; i < 1000; i++ {
 		t1()
 		cursor.Down(1)
@@ -149,5 +151,5 @@ func demoConcurrentProgressBars(t termite.Terminal) {
 	cursor.Down(3)
 	cursor.Show()
 
-	t.Println("")
+	t.Println("\n")
 }
