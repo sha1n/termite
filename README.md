@@ -8,4 +8,4 @@
 
 # termite
 
-![termite](docs/images/termite_termite_demo.gif)
+![termite](docs/images/termite_demo_800.gif)
