@@ -7,3 +7,5 @@
 
 
 # termite
+
+![termite](docs/images/termite.gif)
