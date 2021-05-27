@@ -8,18 +8,18 @@ import (
 )
 
 const (
-	terminalWidth  = 100
-	terminalHeight = 100
+	fakeTerminalWidth  = 100
+	fakeTerminalHeight = 100
 )
 
-var fakeTerminal = NewFakeTerminal(terminalWidth, terminalHeight)
+var fakeTerminal = NewFakeTerminal(fakeTerminalWidth, fakeTerminalHeight)
 
 func TestFullWidthProgressBar(t *testing.T) {
-	testProgressBarWith(t, terminalWidth, terminalWidth)
+	testProgressBarWith(t, fakeTerminalWidth, fakeTerminalWidth)
 }
 
 func TestOversizedProgressBar(t *testing.T) {
-	testProgressBarWith(t, terminalWidth*2, terminalWidth/2+rand.Intn(terminalWidth*2))
+	testProgressBarWith(t, fakeTerminalWidth*2, fakeTerminalWidth/2+rand.Intn(fakeTerminalWidth*2))
 }
 
 func TestTickAnAlreadyDoneProgressBar(t *testing.T) {

@@ -2,7 +2,6 @@ package termite
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,14 +10,34 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-// TermControlEraseLine clears the current line and positions the cursor at the beginning
-const TermControlEraseLine = "\r\033[K"
+func init() {
+	if !Tty {
+		return
+	}
 
-// TermControlClearScreen emulates the bash/sh clear command
-const TermControlClearScreen = "\033[H\033[2J"
+	var err error
+	terminalWidth, terminalHeight, err = terminal.GetSize(int(os.Stdin.Fd()))
 
-// TermControlCRLF line feed
-const TermControlCRLF = "\r\n"
+	if err != nil {
+		println("failed to resolve retminal dimensions")
+	}
+}
+
+var (
+	terminalWidth  int
+	terminalHeight int
+)
+
+const (
+	// TermControlEraseLine clears the current line and positions the cursor at the beginning
+	TermControlEraseLine = "\r\033[K"
+
+	// TermControlClearScreen emulates the bash/sh clear command
+	TermControlClearScreen = "\033[H\033[2J"
+
+	// TermControlCRLF line feed
+	TermControlCRLF = "\r\n"
+)
 
 // Terminal privides terminal related APIs
 type Terminal interface {
@@ -31,9 +50,6 @@ type Terminal interface {
 
 	Print(e interface{})
 	Println(e interface{})
-	OverwriteLine(e interface{})
-	EraseLine()
-	Clear()
 }
 
 type term struct {
@@ -53,30 +69,18 @@ func NewTerminal(autoFlush bool) Terminal {
 	}
 }
 
+// Width returns the current terminal width.
+// If no TTY returns 0
+// If it fails to get the width it panics with an error.
 func (t *term) Width() (width int) {
-	if !Tty {
-		return 0
-	}
-
-	if width, _, err := terminal.GetSize(int(os.Stdin.Fd())); err == nil {
-		return width
-	}
-
-	// FIXME: we probably need to check whether we have a terminal and handle that earlier.
-	panic(errors.New("can't get terminal width"))
+	return terminalWidth
 }
 
+// Height returns the current terminal height.
+// If no TTY returns 0
+// If it fails to get the width it panics with an error.
 func (t *term) Height() (height int) {
-	if !Tty {
-		return 0
-	}
-
-	if _, height, err := terminal.GetSize(int(os.Stdin.Fd())); err == nil {
-		return height
-	}
-
-	// FIXME: we probably need to check whether we have a terminal and handle that earlier.
-	panic(errors.New("can't get terminal height"))
+	return terminalHeight
 }
 
 func (t *term) StdOut() io.Writer {
@@ -93,18 +97,6 @@ func (t *term) Print(e interface{}) {
 
 func (t *term) Println(e interface{}) {
 	t.WriteString(fmt.Sprintf("%v%s", e, TermControlCRLF))
-}
-
-func (t *term) EraseLine() {
-	t.WriteString(TermControlEraseLine)
-}
-
-func (t *term) OverwriteLine(e interface{}) {
-	t.Print(fmt.Sprintf("%s%v", TermControlEraseLine, e))
-}
-
-func (t *term) Clear() {
-	t.WriteString(TermControlClearScreen)
 }
 
 func (t *term) WriteString(s string) (n int, err error) {

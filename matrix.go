@@ -10,7 +10,7 @@ import (
 
 // Matrix is a multiline structure that reflects its state on screen
 type Matrix interface {
-	Terminal() Terminal
+	StringWriter() io.StringWriter
 	RefreshInterval() time.Duration
 	NewLineStringWriter() io.StringWriter
 	NewLineWriter() io.Writer
@@ -25,7 +25,7 @@ type MatrixLine interface {
 type terminalMatrix struct {
 	lines           []string
 	refreshInterval time.Duration
-	terminal        Terminal
+	writer          io.StringWriter
 	mx              *sync.RWMutex
 }
 
@@ -35,17 +35,17 @@ type matrixLineWriter struct {
 }
 
 // NewMatrix creates a new Matrix for the specified Terminal
-func NewMatrix(t Terminal) Matrix {
+func NewMatrix(writer io.StringWriter) Matrix {
 	return &terminalMatrix{
 		lines:           []string{},
 		refreshInterval: time.Millisecond * 100,
-		terminal:        t,
+		writer:          writer,
 		mx:              &sync.RWMutex{},
 	}
 }
 
-func (m *terminalMatrix) Terminal() Terminal {
-	return m.terminal
+func (m *terminalMatrix) StringWriter() io.StringWriter {
+	return m.writer
 }
 
 func (m *terminalMatrix) RefreshInterval() time.Duration {
@@ -74,7 +74,7 @@ func (m *terminalMatrix) Start() context.CancelFunc {
 				timer.Stop()
 				m.updateTerminal(false)
 				drainWaitGroup.Done()
-				return 
+				return
 
 			case <-timer.C:
 				m.updateTerminal(true)
@@ -92,7 +92,7 @@ func (m *terminalMatrix) Start() context.CancelFunc {
 }
 
 func (m *terminalMatrix) updateTerminal(resetCursorPosition bool) {
-	c := NewCursor(m.terminal)
+	c := NewCursor(m.writer)
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
@@ -101,7 +101,7 @@ func (m *terminalMatrix) updateTerminal(resetCursorPosition bool) {
 	}
 
 	for _, line := range m.lines {
-		m.terminal.OverwriteLine(fmt.Sprintf("%s\r\n", line))
+		m.writer.WriteString(fmt.Sprintf("%s%s\r\n", TermControlEraseLine, line))
 	}
 
 	if resetCursorPosition {
