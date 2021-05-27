@@ -16,7 +16,7 @@ type fakeTerm struct {
 }
 
 // NewFakeTerminal ...
-func NewFakeTerminal(width, height int) Terminal {
+func NewFakeTerminal(width, height int) *fakeTerm {
 	return &fakeTerm{
 		Out:     new(bytes.Buffer),
 		Err:     new(bytes.Buffer),
