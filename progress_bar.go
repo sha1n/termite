@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"sync"
 )
@@ -19,10 +20,9 @@ type ProgressBar interface {
 }
 
 type bar struct {
-	max         int
+	maxTicks    int
 	ticks       int
-	term        Terminal
-	cursor      Cursor
+	writer      io.StringWriter
 	width       int
 	leftBorder  string
 	rightBorder string
@@ -32,19 +32,18 @@ type bar struct {
 }
 
 // NewProgressBar creates a new progress bar
-// t - the terminal to use for io interactions
+// terminal - the terminal to use for io interactions and width resolution
 // maxTicks - how many ticks are to be considered 100% of the progress
 // width - bar width in characters
 // leftBorder - left border character
 // rightBorder - right border character
 // fill - fill character
-func NewProgressBar(t Terminal, maxTicks int, width int, leftBorder rune, rightBorder rune, fill rune) ProgressBar {
+func NewProgressBar(terminal Terminal, maxTicks int, width int, leftBorder rune, rightBorder rune, fill rune) ProgressBar {
 	return &bar{
-		max:         maxTicks,
+		maxTicks:    maxTicks,
 		ticks:       0,
-		term:        t,
-		cursor:      NewCursor(t),
-		width:       min(width, t.Width()-7), // 7 = 2 borders, 3 digits, % sign + 1 padding char
+		writer:      terminal,
+		width:       min(width, terminal.Width()-7), // 7 = 2 borders, 3 digits, % sign + 1 padding char
 		leftBorder:  string(leftBorder),
 		rightBorder: string(rightBorder),
 		fill:        string(fill),
@@ -52,16 +51,16 @@ func NewProgressBar(t Terminal, maxTicks int, width int, leftBorder rune, rightB
 	}
 }
 
-// NewDefaultProgressBar creates a progress bar with default settings
-func NewDefaultProgressBar(t Terminal, maxTicks int) ProgressBar {
+// NewDefaultProgressBar creates a progress bar with styling
+func NewDefaultProgressBar(terminal Terminal, maxTicks int) ProgressBar {
 	return NewProgressBar(
-		t, maxTicks, t.Width()/2, '\u258F', '\u2595', '\u2587',
+		terminal, maxTicks, terminal.Width()/2, '\u258F', '\u2595', '\u2587',
 	)
 }
 
 // IsDone returns whether or not this progress bar has reached 100%
 func (b *bar) IsDone() bool {
-	return b.ticks >= b.max
+	return b.ticks >= b.maxTicks
 }
 
 // Tick increments the progress by one tick. Does not imply visual change.
@@ -70,27 +69,21 @@ func (b *bar) Tick() bool {
 		return false
 	}
 
-	// return to overwrite the previous progress bar only if it exists
-	if b.ticks > 0 {
-		b.cursor.Up(1)
-	}
 	b.ticks++
 
 	totalChars := b.width
-	percent := float32(b.ticks) / float32(b.max)
+	percent := float32(b.ticks) / float32(b.maxTicks)
 	charsToFill := int(percent * float32(totalChars))
 	spaceChars := totalChars - charsToFill
 
-	b.term.OverwriteLine(
+	b.writer.WriteString(
 		fmt.Sprintf(
-			"%s%s%s%s %d%%%s",
+			"%s%s%s%s%s %d%%\r",
+			TermControlEraseLine,
 			b.leftBorder, strings.Repeat(b.fill, charsToFill),
 			strings.Repeat(" ", spaceChars),
 			b.rightBorder,
 			int(percent*100),
-			// this ensures neater end of line when the program ends
-			// with a progress bar and no line feed is entered.
-			TermControlCRLF,
 		),
 	)
 
@@ -140,8 +133,6 @@ func (b *bar) Start() (tick TickFn, cancel context.CancelFunc, err error) {
 		for {
 			select {
 			case <-ctx.Done():
-				for b.Tick() {
-				}
 				return
 
 			case <-events:

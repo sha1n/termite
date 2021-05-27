@@ -50,18 +50,6 @@ func (t *fakeTerm) Println(e interface{}) {
 	t.WriteString(fmt.Sprintf("%v\r\n", e))
 }
 
-func (t *fakeTerm) EraseLine() {
-	t.WriteString(TermControlEraseLine)
-}
-
-func (t *fakeTerm) OverwriteLine(e interface{}) {
-	t.Print(fmt.Sprintf("%s%v", TermControlEraseLine, e))
-}
-
-func (t *fakeTerm) Clear() {
-	t.Out.Reset()
-}
-
 func (t *fakeTerm) WriteString(s string) (n int, err error) {
 	t.outLock.Lock()
 	defer t.outLock.Unlock()
