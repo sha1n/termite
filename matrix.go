@@ -3,6 +3,7 @@ package termite
 import (
 	"context"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 )
@@ -11,7 +12,8 @@ import (
 type Matrix interface {
 	Terminal() Terminal
 	RefreshInterval() time.Duration
-	NewLine() MatrixLine
+	NewLineStringWriter() io.StringWriter
+	NewLineWriter() io.Writer
 	Start() context.CancelFunc
 }
 
@@ -27,7 +29,7 @@ type terminalMatrix struct {
 	mx              *sync.RWMutex
 }
 
-type terminalLine struct {
+type matrixLineWriter struct {
 	index  int
 	matrix *terminalMatrix
 }
@@ -53,50 +55,86 @@ func (m *terminalMatrix) RefreshInterval() time.Duration {
 // Start starts the matrix update process.
 // Returns a cancel handle to stop the matrix updates.
 func (m *terminalMatrix) Start() context.CancelFunc {
-	c := NewCursor(m.terminal)
 	context, cancel := context.WithCancel(context.Background())
+
+	waitStart := &sync.WaitGroup{}
+	waitStart.Add(1)
+	var drainWaitGroup *sync.WaitGroup
 
 	go func() {
 		timer := time.NewTicker(m.refreshInterval)
+		drainWaitGroup = &sync.WaitGroup{}
+		drainWaitGroup.Add(1)
+		// now that we loaded the drain wait group, we can release the caller
+		waitStart.Done()
+
 		for {
 			select {
 			case <-context.Done():
 				timer.Stop()
+				m.updateTerminal(false)
+				drainWaitGroup.Done()
+				return 
 
 			case <-timer.C:
-				if len(m.lines) == 0 {
-					continue
-				}
-
-				m.mx.Lock()
-				for _, line := range m.lines {
-					m.terminal.OverwriteLine(fmt.Sprintf("%s\r\n", line))
-				}
-				c.Up(len(m.lines))
-				m.mx.Unlock()
+				m.updateTerminal(true)
 			}
 		}
 	}()
 
-	return cancel
+	waitStart.Wait()
+
+	return func() {
+		cancel()
+		// Wait for the final update to complete
+		drainWaitGroup.Wait()
+	}
 }
 
-// NewRow creates a new matrix row
-func (m *terminalMatrix) NewLine() MatrixLine {
+func (m *terminalMatrix) updateTerminal(resetCursorPosition bool) {
+	c := NewCursor(m.terminal)
+	m.mx.Lock()
+	defer m.mx.Unlock()
+
+	if len(m.lines) == 0 {
+		return
+	}
+
+	for _, line := range m.lines {
+		m.terminal.OverwriteLine(fmt.Sprintf("%s\r\n", line))
+	}
+
+	if resetCursorPosition {
+		c.Up(len(m.lines))
+	}
+}
+
+// NewLineStringWriter returns a new string writter to interact with a single matrix line
+func (m *terminalMatrix) NewLineStringWriter() io.StringWriter {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
 	index := len(m.lines)
 	m.lines = append(m.lines, "")
-	return &terminalLine{
+	return &matrixLineWriter{
 		index:  index,
 		matrix: m,
 	}
 }
 
-func (l *terminalLine) WriteString(s string) {
+// NewLineWriter returns a new writer interface to interact with a single matrix line.
+func (m *terminalMatrix) NewLineWriter() io.Writer {
+	return m.NewLineStringWriter().(*matrixLineWriter)
+}
+
+func (l *matrixLineWriter) WriteString(s string) (n int, err error) {
+	return l.Write([]byte(s))
+}
+
+func (l *matrixLineWriter) Write(b []byte) (n int, err error) {
 	l.matrix.mx.Lock()
 	defer l.matrix.mx.Unlock()
 
-	l.matrix.lines[l.index] = s
+	l.matrix.lines[l.index] = string(b)
+	return len(b), nil
 }

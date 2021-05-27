@@ -24,6 +24,7 @@ const TermControlCRLF = "\r\n"
 type Terminal interface {
 	StdOut() io.Writer
 	StdErr() io.Writer
+	WriteString(s string) (int, error)
 
 	Width() int
 	Height() int
@@ -87,15 +88,15 @@ func (t *term) StdErr() io.Writer {
 }
 
 func (t *term) Print(e interface{}) {
-	t.writeString(fmt.Sprintf("%v", e))
+	t.WriteString(fmt.Sprintf("%v", e))
 }
 
 func (t *term) Println(e interface{}) {
-	t.writeString(fmt.Sprintf("%v%s", e, TermControlCRLF))
+	t.WriteString(fmt.Sprintf("%v%s", e, TermControlCRLF))
 }
 
 func (t *term) EraseLine() {
-	t.writeString(TermControlEraseLine)
+	t.WriteString(TermControlEraseLine)
 }
 
 func (t *term) OverwriteLine(e interface{}) {
@@ -103,10 +104,10 @@ func (t *term) OverwriteLine(e interface{}) {
 }
 
 func (t *term) Clear() {
-	t.writeString(TermControlClearScreen)
+	t.WriteString(TermControlClearScreen)
 }
 
-func (t *term) writeString(s string) (n int) {
+func (t *term) WriteString(s string) (n int, err error) {
 	t.outLock.Lock()
 	defer t.outLock.Unlock()
 
@@ -114,8 +115,5 @@ func (t *term) writeString(s string) (n int) {
 		defer t.Out.Flush()
 	}
 
-	if n, err := t.Out.WriteString(s); err == nil {
-		return n
-	}
-	return 0
+	return t.Out.WriteString(s)
 }
