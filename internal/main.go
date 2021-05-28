@@ -10,7 +10,9 @@ import (
 	"github.com/sha1n/termite"
 )
 
-const taskDoneMarkUniChar = "\u2705"
+var taskDoneMarkUniChar = color.GreenString("\u2714")
+var taskFailMarkUniChar = color.RedString("\u2717")
+
 const splash = `
  ____  ____  ____  _  _  __  ____  ____    ____  ____  _  _   __  
 (_  _)(  __)(  _ \( \/ )(  )(_  _)(  __)  (    \(  __)( \/ ) /  \ 
@@ -50,7 +52,7 @@ func demoMatrix(t termite.Terminal) {
 
 	for i := 0; i < 100; i++ {
 		time.Sleep(refreshInterval)
-		lines[i%len(lines)].WriteString(fmt.Sprintf("- Matrix Line -> version %d", i+1))
+		_, _ = lines[i%len(lines)].WriteString(fmt.Sprintf("- Matrix Line -> version %d", i+1))
 	}
 
 	cancel()
@@ -74,7 +76,7 @@ func demoSpinner(t termite.Terminal) {
 		time.Sleep(time.Second * 1)
 		spinner.SetTitle("Finishing...")
 		time.Sleep(time.Second * 1)
-		spinner.Stop("- Done " + taskDoneMarkUniChar)
+		_ = spinner.Stop("- Done " + taskDoneMarkUniChar)
 		t.Println("")
 	}
 }
@@ -103,7 +105,7 @@ func demoCursor(t termite.Terminal) {
 
 	time.Sleep(time.Millisecond * 50)
 	cursor.Up(2)
-	t.Print(termite.TermControlEraseLine + fmtTaskStatus("B", taskDoneMarkUniChar))
+	t.Print(termite.TermControlEraseLine + fmtTaskStatus("B", taskFailMarkUniChar))
 	cursor.Down(2)
 
 	time.Sleep(time.Millisecond * 50)
@@ -127,13 +129,12 @@ func demoConcurrentProgressBars(t termite.Terminal) {
 
 	cursor := termite.NewCursor(t)
 
-	b1 := termite.NewProgressBar(t, 1000, t.Width()*1/8, '\u258F', '\u2595', '\u2587')
-	b2 := termite.NewProgressBar(t, 1000, t.Width()*1/4, '\u258F', '\u2595', '\u2587')
-	b3 := termite.NewProgressBar(t, 1000, t.Width()*1/2, '\u258F', '\u2595', '\u2587')
-	b4 := termite.NewProgressBar(t, 1000, t.Width(), '\u258F', '\u2595', '\u2591')
+	t.AllocateNewLines(4) // allocate 4 lines
 
-	t.Print("\n\n\n\n") // allocate 4 lines
-	cursor.Up(4)        // return to start position
+	b1 := termite.NewProgressBar(t, 1000, t.Width()*1/8, '\u258C', '\u258C', '\u258C')
+	b2 := termite.NewProgressBar(t, 1000, t.Width()*1/4, '\u258F', '\u2595', '\u2592')
+	b3 := termite.NewProgressBar(t, 1000, t.Width()*3/8, '\u258F', '\u2595', '\u2591')
+	b4 := termite.NewProgressBar(t, 1000, t.Width()*1/2, '\u2587', '\u2587', '\u2587')
 
 	t1, _, _ := b1.Start()
 	t2, _, _ := b2.Start()
