@@ -6,6 +6,53 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
-# termite
+<img src="docs/images/termite.png" width="96">
 
-![termite](docs/images/termite_demo_800.gif)
+- [TERMite](#termite)
+  - [Install](#install)
+  - [Code Examples](#code-examples)
+    - [Spinner Progress Example](#spinner-progress-example)
+    - [Progress Bar Example](#progress-bar-example)
+  - [Showcase](#showcase)
+
+# TERMite
+Termite is my playground for terminal app utilities and visual elements such as progress bars and indicators, cursor control and screen updates.
+
+## Install
+```bash
+go get github.com/sha1n/termite
+```
+
+## Code Examples
+### Spinner Progress Example
+```go
+terminal := termite.NewTerminal(true)
+refreshInterval := time.Millisecond * 100
+spinner := termite.NewSpinner(terminal, "Processing...", refreshInterval)
+
+if _, e := spinner.Start(); e == nil {
+  doWork()
+  
+  _ = spinner.Stop("Done!")
+}
+
+```
+
+### Progress Bar Example
+```go
+terminal := termite.NewTerminal(true)
+progressBar := termite.NewDefaultProgressBar(terminal, workItems)
+
+if tick, cancel, err := progressBar.Start(); err == nil {
+  defer cancel()
+  
+  doWork(tick)
+}
+
+
+```
+
+## Showcase
+The code for this demo can be found in [internal/main.go](internal/main.go) (`go run internal/main.go`). 
+
+<img src="docs/images/termite_demo_800.gif" width="100%">
