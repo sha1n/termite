@@ -32,18 +32,19 @@ type bar struct {
 }
 
 // NewProgressBar creates a new progress bar
-// terminal - the terminal to use for io interactions and width resolution
-// maxTicks - how many ticks are to be considered 100% of the progress
-// width - bar width in characters
-// leftBorder - left border character
-// rightBorder - right border character
+// writer 				- the writer to use for output
+// maxTicks 			- how many ticks are to be considered 100% of the progress
+// terminalWidth 	- the width of the terminal
+// width 					- bar width in characters
+// leftBorder 		- left border character
+// rightBorder 		- right border character
 // fill - fill character
-func NewProgressBar(terminal Terminal, maxTicks int, width int, leftBorder rune, rightBorder rune, fill rune) ProgressBar {
+func NewProgressBar(writer io.StringWriter, maxTicks int, terminalWidth int, width int, leftBorder rune, rightBorder rune, fill rune) ProgressBar {
 	return &bar{
 		maxTicks:    maxTicks,
 		ticks:       0,
-		writer:      terminal,
-		width:       min(width, terminal.Width()-7), // 7 = 2 borders, 3 digits, % sign + 1 padding char
+		writer:      writer,
+		width:       min(width, terminalWidth-7), // 7 = 2 borders, 3 digits, % sign + 1 padding char
 		leftBorder:  string(leftBorder),
 		rightBorder: string(rightBorder),
 		fill:        string(fill),
@@ -54,7 +55,7 @@ func NewProgressBar(terminal Terminal, maxTicks int, width int, leftBorder rune,
 // NewDefaultProgressBar creates a progress bar with styling
 func NewDefaultProgressBar(terminal Terminal, maxTicks int) ProgressBar {
 	return NewProgressBar(
-		terminal, maxTicks, terminal.Width()/2, '\u258F', '\u2595', '\u2587',
+		terminal, maxTicks, terminal.Width()/2, terminal.Width(), '\u258F', '\u2595', '\u2587',
 	)
 }
 
