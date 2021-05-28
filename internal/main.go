@@ -40,7 +40,8 @@ func demo(t termite.Terminal) {
 func demoMatrix(t termite.Terminal) {
 	printTitle("Matrix Layout", t)
 
-	m := termite.NewMatrix(t)
+	refreshInterval := time.Millisecond * 10
+	m := termite.NewMatrix(t, refreshInterval)
 	cancel := m.Start()
 
 	lines := []io.StringWriter{
@@ -48,7 +49,7 @@ func demoMatrix(t termite.Terminal) {
 	}
 
 	for i := 0; i < 100; i++ {
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(refreshInterval)
 		lines[i%len(lines)].WriteString(fmt.Sprintf("- Matrix Line -> version %d", i+1))
 	}
 

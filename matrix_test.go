@@ -15,7 +15,7 @@ import (
 func TestMatrixWritesToTerminalOutput(t *testing.T) {
 	examples := generateMultiLineExamples(3)
 
-	matrix, cancel := startMatrix()
+	matrix, cancel := startNewMatrix()
 	defer cancel()
 
 	matrix.NewLineStringWriter().WriteString(examples[0])
@@ -28,7 +28,7 @@ func TestMatrixWritesToTerminalOutput(t *testing.T) {
 func TestMatrixUpdatesTerminalOutput(t *testing.T) {
 	examples := generateMultiLineExamples(3)
 
-	matrix, cancel := startMatrix()
+	matrix, cancel := startNewMatrix()
 	defer cancel()
 
 	matrix.NewLineStringWriter().WriteString(examples[0])
@@ -44,7 +44,7 @@ func TestMatrixUpdatesTerminalOutput(t *testing.T) {
 func TestMatrixStructure(t *testing.T) {
 	examples := generateMultiLineExamples(3)
 
-	matrix, cancel := startMatrix()
+	matrix, cancel := startNewMatrix()
 	defer cancel()
 
 	matrix.NewLineStringWriter().WriteString(examples[0])
@@ -57,10 +57,10 @@ func TestMatrixStructure(t *testing.T) {
 func TestWriterLineInterface(t *testing.T) {
 	example := generateRandomString()
 
-	matrix1, cancel1 := startMatrix()
+	matrix1, cancel1 := startNewMatrix()
 	defer cancel1()
 
-	matrix2, cancel2 := startMatrix()
+	matrix2, cancel2 := startNewMatrix()
 	defer cancel2()
 
 	matrix1.NewLineStringWriter().WriteString(example)
@@ -72,7 +72,7 @@ func TestWriterLineInterface(t *testing.T) {
 func assertEventualSequence(t *testing.T, matrix Matrix, examples []string) {
 	contantsAllExamplesInOrderFn := func() bool {
 		return strings.Contains(
-			matrix.StringWriter().(*fakeTerm).Out.String(),
+			matrix.(*terminalMatrix).writer.(*fakeTerm).Out.String(),
 			expectedOutputSequenceFor(examples),
 		)
 	}
@@ -93,9 +93,9 @@ func expectedOutputSequenceFor(examples []string) string {
 	return buf.String()
 }
 
-func startMatrix() (Matrix, context.CancelFunc) {
+func startNewMatrix() (Matrix, context.CancelFunc) {
 	term := NewFakeTerminal(80, 80)
-	matrix := NewMatrix(term)
+	matrix := NewMatrix(term, time.Millisecond)
 	cancel := matrix.Start()
 
 	return matrix, cancel
