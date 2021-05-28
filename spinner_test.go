@@ -70,6 +70,7 @@ func TestSpinnerStopMessage(t *testing.T) {
 	assert.NoError(t, err)
 
 	assertBufferEventuallyContains(t, fakeTerminal, expectedStopMessage)
+	assert.NotContains(t, fakeTerminal.Out.String(), "\n", "line feed is expected!")
 }
 
 func TestSpinnerTitle(t *testing.T) {
@@ -93,9 +94,9 @@ func TestSpinnerSetTitle(t *testing.T) {
 	defer cancel()
 
 	assertBufferEventuallyContains(t, fakeTerminal, expectedInitialTitle)
-	
+
 	spin.SetTitle(expectedUpdatedTitle)
-	
+
 	assertBufferEventuallyContains(t, fakeTerminal, expectedUpdatedTitle)
 }
 

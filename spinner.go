@@ -65,7 +65,7 @@ func (s *spinner) Start() (cancel context.CancelFunc, err error) {
 
 	go func() {
 		var spinring = createSpinnerRing()
-		timer := time.NewTicker(time.Millisecond * s.interval)
+		timer := time.NewTicker(s.interval)
 
 		waitStart.Done()
 
@@ -134,7 +134,6 @@ func (s *spinner) getTitle() string {
 func (s *spinner) printExitMessage(message string) {
 	s.writer.WriteString(TermControlEraseLine)
 	s.writer.WriteString(message)
-	s.writer.WriteString("\r\n")
 }
 
 func createSpinnerRing() *ring.Ring {
