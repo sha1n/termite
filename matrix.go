@@ -10,7 +10,6 @@ import (
 
 // Matrix is a multiline structure that reflects its state on screen
 type Matrix interface {
-	StringWriter() io.StringWriter
 	RefreshInterval() time.Duration
 	NewLineStringWriter() io.StringWriter
 	NewLineWriter() io.Writer
@@ -34,18 +33,14 @@ type matrixLineWriter struct {
 	matrix *terminalMatrix
 }
 
-// NewMatrix creates a new Matrix for the specified Terminal
-func NewMatrix(writer io.StringWriter) Matrix {
+// NewMatrix creates a new matrix that writes to the specified writer and refreshes every refreshInterval.
+func NewMatrix(writer io.StringWriter, refreshInterval time.Duration) Matrix {
 	return &terminalMatrix{
 		lines:           []string{},
-		refreshInterval: time.Millisecond * 100,
+		refreshInterval: refreshInterval,
 		writer:          writer,
 		mx:              &sync.RWMutex{},
 	}
-}
-
-func (m *terminalMatrix) StringWriter() io.StringWriter {
-	return m.writer
 }
 
 func (m *terminalMatrix) RefreshInterval() time.Duration {
