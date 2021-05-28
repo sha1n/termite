@@ -5,27 +5,45 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"sync"
 
+	"github.com/mattn/go-isatty"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
 func init() {
-	if !Tty {
-		return
-	}
+	StdoutWriter = os.Stdout
+	StderrWriter = os.Stderr
+	StdinReader = os.Stdin
 
-	var err error
-	terminalWidth, terminalHeight, err = terminal.GetSize(int(os.Stdin.Fd()))
+	Tty = isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
 
-	if err != nil {
-		println("failed to resolve retminal dimensions")
+	if Tty {
+		var err error
+		terminalWidth, terminalHeight, err = terminal.GetSize(int(os.Stdin.Fd()))
+
+		if err != nil {
+			println("failed to resolve retminal dimensions")
+		}
 	}
 }
 
 var (
 	terminalWidth  int
 	terminalHeight int
+	
+	// StdoutWriter to be used as standard out
+	StdoutWriter io.Writer
+
+	// StderrWriter to be used as standard err
+	StderrWriter io.Writer
+
+	// StdinReader to be used as standard in
+	StdinReader io.Reader
+
+	// Tty whether or not we have a terminal
+	Tty bool
 )
 
 const (
@@ -44,6 +62,7 @@ type Terminal interface {
 	StdOut() io.Writer
 	StdErr() io.Writer
 	WriteString(s string) (int, error)
+	AllocateNewLines(int)
 
 	Width() int
 	Height() int
@@ -108,4 +127,9 @@ func (t *term) WriteString(s string) (n int, err error) {
 	}
 
 	return t.Out.WriteString(s)
+}
+
+func (t *term) AllocateNewLines(count int) {
+	t.Print(strings.Repeat("\n", count)) // allocate 4 lines
+	NewCursor(t).Up(count)               // return to start position
 }
