@@ -69,7 +69,7 @@ func TestStartCancel(t *testing.T) {
 }
 
 func testProgressBarWith(t *testing.T, width, maxTicks int) {
-	bar := NewProgressBar(fakeTerminal, maxTicks, width, '|', '-', '|')
+	bar := NewProgressBar(fakeTerminal, maxTicks, width, width, '|', '-', '|')
 
 	var count = 0
 	for {
