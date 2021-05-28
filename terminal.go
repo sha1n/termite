@@ -32,7 +32,7 @@ func init() {
 var (
 	terminalWidth  int
 	terminalHeight int
-	
+
 	// StdoutWriter to be used as standard out
 	StdoutWriter io.Writer
 
