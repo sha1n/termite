@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"math/rand"
 	"strings"
 	"time"
@@ -59,35 +58,29 @@ func demoMatrix(t termite.Terminal) {
 	m := termite.NewMatrix(t, progressRefreshInterval)
 	cancel := m.Start()
 
-	// allocating lines for 5 tasks
-	lines := []io.StringWriter{
-		m.NewLineStringWriter(),
-		m.NewLineStringWriter(),
-		m.NewLineStringWriter(),
-		m.NewLineStringWriter(),
-		m.NewLineStringWriter(),
-	}
+	// allocating rows for 5 tasks and one space row
+	m.NewRange(6)
 
-	// adding a space line
-	m.NewLineStringWriter() // TODO maybe add a dedicated method for this?
-
-	// adding a progress bar line
-	progressLine := m.NewLineStringWriter()
-	pb := termite.NewProgressBar(progressLine, 5*len(progressPhases), t.Width(), t.Width()/8, '\u2587', '\u2587', '\u2587')
+	// adding a progress bar row
+	progressRow := m.NewRow()
+	pb := termite.NewProgressBar(progressRow, 5*len(progressPhases), t.Width(), t.Width()/8, '\u2587', '\u2587', '\u2587')
 	tick, _, _ := pb.Start()
 
-	update := func(lineIndex int, status string) {
+	update := func(rowIndex int, status string) {
+		// to make it look more realistic we randomize task duration
 		time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
-		_, _ = lines[lineIndex%len(lines)].WriteString(fmt.Sprintf("- Matrix Task %d - %s", lineIndex+1, status))
+
+		row, _ := m.GetRow(rowIndex)
+		row.Update(fmt.Sprintf("- Matrix Task %d - %s", rowIndex+1, status))
 	}
 
 	rand.Seed(time.Now().UnixNano())
-	indexs := []int{0, 1, 2, 3, 4}
-
+	indexes := []int{0, 1, 2, 3, 4}
 	// update the matrix
 	for _, status := range progressPhases {
-		rand.Shuffle(len(indexs), func(i, j int) { indexs[i], indexs[j] = indexs[j], indexs[i] })
-		for _, i := range indexs {
+		// to make it look more realistic we update in a random order
+		rand.Shuffle(len(indexes), func(i, j int) { indexes[i], indexes[j] = indexes[j], indexes[i] })
+		for _, i := range indexes {
 			update(i, status)
 			tick()
 		}
