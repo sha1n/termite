@@ -41,6 +41,17 @@ func TestMatrixUpdatesTerminalOutput(t *testing.T) {
 	assertEventualSequence(t, matrix, examples)
 }
 
+func TestMatrixRowUpdateTrimsLineFeeds(t *testing.T) {
+	expected := generateRandomString()
+
+	matrix, cancel := startNewMatrix()
+	defer cancel()
+
+	matrix.NewRow().Update("\r\n" + expected + "\r\n\r\n\r")
+
+	assertEventualSequence(t, matrix, []string{expected})
+}
+
 func TestMatrixStructure(t *testing.T) {
 	examples := generateMultiLineExamples(3)
 
