@@ -3,10 +3,10 @@ package termite
 import (
 	"bufio"
 	"bytes"
-	// "io"
 )
 
-type fakeTerm struct {
+// FakeTerminal a fake Terminal implementation for testing purposes.
+type FakeTerminal struct {
 	Terminal
 	Out    *bytes.Buffer
 	Err    *bytes.Buffer
@@ -15,7 +15,7 @@ type fakeTerm struct {
 }
 
 // NewFakeTerminal ...
-func NewFakeTerminal(width, height int) *fakeTerm {
+func NewFakeTerminal(width, height int) *FakeTerminal {
 	outBuf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 
@@ -23,7 +23,7 @@ func NewFakeTerminal(width, height int) *fakeTerm {
 	(t.(*term)).Out = bufio.NewWriter(outBuf)
 	(t.(*term)).Err = bufio.NewWriter(errBuf)
 
-	return &fakeTerm{
+	return &FakeTerminal{
 		Out:      outBuf,
 		Err:      errBuf,
 		width:    width,
@@ -32,10 +32,12 @@ func NewFakeTerminal(width, height int) *fakeTerm {
 	}
 }
 
-func (t *fakeTerm) Width() (width int) {
+// Width return a pre-set fake width
+func (t *FakeTerminal) Width() (width int) {
 	return t.width
 }
 
-func (t *fakeTerm) Height() (height int) {
+// Height return a pre-set fake height
+func (t *FakeTerminal) Height() (height int) {
 	return t.height
 }
