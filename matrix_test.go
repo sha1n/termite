@@ -128,7 +128,7 @@ func TestMatrixGetRowByIdWithIllegalValue(t *testing.T) {
 func assertEventualSequence(t *testing.T, matrix Matrix, examples []string) {
 	contantsAllExamplesInOrderFn := func() bool {
 		return strings.Contains(
-			matrix.(*matrixImpl).writer.(*fakeTerm).Out.String(),
+			matrix.(*matrixImpl).writer.(*FakeTerminal).Out.String(),
 			expectedOutputSequenceFor(examples),
 		)
 	}
