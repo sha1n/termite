@@ -100,7 +100,7 @@ func TestSpinnerSetTitle(t *testing.T) {
 	assertBufferEventuallyContains(t, fakeTerminal, expectedUpdatedTitle)
 }
 
-func assertBufferEventuallyContains(t *testing.T, fakeTerminal *fakeTerm, expected string) {
+func assertBufferEventuallyContains(t *testing.T, fakeTerminal *FakeTerminal, expected string) {
 	assert.Eventually(
 		t,
 		bufferContains(fakeTerminal, expected),
@@ -109,13 +109,13 @@ func assertBufferEventuallyContains(t *testing.T, fakeTerminal *fakeTerm, expect
 	)
 }
 
-func bufferContains(fakeTerminal *fakeTerm, expected string) func() bool {
+func bufferContains(fakeTerminal *FakeTerminal, expected string) func() bool {
 	return func() bool {
 		return strings.Contains(fakeTerminal.Out.String(), expected)
 	}
 }
 
-func assertStoppedEventually(t *testing.T, fakeTerminal *fakeTerm, spinner *spinner) {
+func assertStoppedEventually(t *testing.T, fakeTerminal *FakeTerminal, spinner *spinner) {
 	termOutput := fakeTerminal.Out
 
 	assert.Eventually(
@@ -136,7 +136,7 @@ func assertStoppedEventually(t *testing.T, fakeTerminal *fakeTerm, spinner *spin
 }
 
 // TODO can this be simplified?
-func assertSpinnerCharSequence(t *testing.T, fakeTerminal *fakeTerm) {
+func assertSpinnerCharSequence(t *testing.T, fakeTerminal *FakeTerminal) {
 	termOutput := fakeTerminal.Out
 	readChars := make([]string, 4)
 	readCharsCount := 0
