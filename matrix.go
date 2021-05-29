@@ -2,6 +2,7 @@ package termite
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -10,32 +11,63 @@ import (
 
 // Matrix is a multiline structure that reflects its state on screen
 type Matrix interface {
-	RefreshInterval() time.Duration
-	NewLineStringWriter() io.StringWriter
-	NewLineWriter() io.Writer
+	// Start starts to update this matrix in the background
 	Start() context.CancelFunc
+
+	// NewRow allocates and returns a MatrixRow
+	NewRow() MatrixRow
+
+	// NewRange allocates and returns the specified n umber of rows
+	NewRange(int) []MatrixRow
+
+	// NewLineStringWriter returns a new string writter to interact with a single matrix line
+	//
+	// Deprecated: use NewRow instead
+	NewLineStringWriter() io.StringWriter // FIXME refactor
+
+	// NewLineWriter returns a new writer interface to interact with a single matrix line
+	//
+	// Deprecated: use NewRow instead
+	NewLineWriter() io.Writer // FIXME refactor
+
+	// RefreshInterval returns the refresh interval of this matrix
+	RefreshInterval() time.Duration
+
+	// GetRow looks up a row by index. Returns an error if none exists
+	GetRow(int) (MatrixRow, error)
+
+	// GetRowByID looks up a row an ID. Returns an error if none exists
+	GetRowByID(MatrixCellID) (MatrixRow, error)
 }
 
-// MatrixLine an accessor to a line in a Matrix structure
-type MatrixLine interface {
-	WriteString(s string)
+// MatrixCellID used to identify a Matrix cell internally
+type MatrixCellID struct {
+	row int
 }
 
-type terminalMatrix struct {
+// MatrixRow an accessor to a line in a Matrix structure
+type MatrixRow interface {
+	io.StringWriter
+	io.Writer
+	ID() MatrixCellID
+	Update(string)
+}
+
+type matrixImpl struct {
 	lines           []string
 	refreshInterval time.Duration
 	writer          io.StringWriter
 	mx              *sync.RWMutex
 }
 
-type matrixLineWriter struct {
-	index  int
-	matrix *terminalMatrix
+type matrixRow struct {
+	id     MatrixCellID
+	matrix *matrixImpl
 }
 
 // NewMatrix creates a new matrix that writes to the specified writer and refreshes every refreshInterval.
 func NewMatrix(writer io.StringWriter, refreshInterval time.Duration) Matrix {
-	return &terminalMatrix{
+	return &matrixImpl{
 		lines:           []string{},
 		refreshInterval: refreshInterval,
 		writer:          writer,
@@ -43,13 +75,13 @@ func NewMatrix(writer io.StringWriter, refreshInterval time.Duration) Matrix {
 	}
 }
 
-func (m *terminalMatrix) RefreshInterval() time.Duration {
+func (m *matrixImpl) RefreshInterval() time.Duration {
 	return m.refreshInterval
 }
 
 // Start starts the matrix update process.
 // Returns a cancel handle to stop the matrix updates.
-func (m *terminalMatrix) Start() context.CancelFunc {
+func (m *matrixImpl) Start() context.CancelFunc {
 	context, cancel := context.WithCancel(context.Background())
 
 	waitStart := &sync.WaitGroup{}
@@ -86,7 +118,30 @@ func (m *terminalMatrix) Start() context.CancelFunc {
 	}
 }
 
-func (m *terminalMatrix) updateTerminal(resetCursorPosition bool) {
+func (m *matrixImpl) GetRow(index int) (row MatrixRow, err error) {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+
+	if index < 0 {
+		return nil, errors.New("row index cannot be negative")
+	}
+	if index >= len(m.lines) {
+		return nil, errors.New("row index exceeds the matrix range")
+	}
+
+	row = &matrixRow{
+		id:     MatrixCellID{row: index},
+		matrix: m,
+	}
+
+	return row, err
+}
+
+func (m *matrixImpl) GetRowByID(id MatrixCellID) (row MatrixRow, err error) {
+	return m.GetRow(id.row)
+}
+
+func (m *matrixImpl) updateTerminal(resetCursorPosition bool) {
 	c := NewCursor(m.writer)
 	m.mx.Lock()
 	defer m.mx.Unlock()
@@ -104,32 +159,58 @@ func (m *terminalMatrix) updateTerminal(resetCursorPosition bool) {
 	}
 }
 
-// NewLineStringWriter returns a new string writter to interact with a single matrix line
-func (m *terminalMatrix) NewLineStringWriter() io.StringWriter {
+func (m *matrixImpl) NewLineStringWriter() io.StringWriter {
+	return m.NewRow()
+}
+
+func (m *matrixImpl) NewLineWriter() io.Writer {
+	return m.NewRow()
+}
+
+func (m *matrixImpl) NewRange(count int) []MatrixRow {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
+	var rows []MatrixRow
+	for i := 0; i < count; i++ {
+		rows = append(rows, m.newRow())
+	}
+
+	return rows
+}
+
+func (m *matrixImpl) NewRow() MatrixRow {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+
+	return m.newRow()
+}
+
+func (m *matrixImpl) newRow() MatrixRow {
 	index := len(m.lines)
 	m.lines = append(m.lines, "")
-	return &matrixLineWriter{
-		index:  index,
+	return &matrixRow{
+		id:     MatrixCellID{row: index},
 		matrix: m,
 	}
 }
 
-// NewLineWriter returns a new writer interface to interact with a single matrix line.
-func (m *terminalMatrix) NewLineWriter() io.Writer {
-	return m.NewLineStringWriter().(*matrixLineWriter)
+func (r *matrixRow) WriteString(s string) (n int, err error) {
+	return r.Write([]byte(s))
 }
 
-func (l *matrixLineWriter) WriteString(s string) (n int, err error) {
-	return l.Write([]byte(s))
-}
+func (r *matrixRow) Write(b []byte) (n int, err error) {
+	r.matrix.mx.Lock()
+	defer r.matrix.mx.Unlock()
 
-func (l *matrixLineWriter) Write(b []byte) (n int, err error) {
-	l.matrix.mx.Lock()
-	defer l.matrix.mx.Unlock()
-
-	l.matrix.lines[l.index] = string(b)
+	r.matrix.lines[r.id.row] = string(b)
 	return len(b), nil
+}
+
+func (r *matrixRow) Update(s string) {
+	_, _ = r.Write([]byte(s))
+}
+
+func (r *matrixRow) ID() MatrixCellID {
+	return r.id
 }
