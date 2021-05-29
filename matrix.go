@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"time"
 )
@@ -46,6 +47,7 @@ type MatrixCellID struct {
 }
 
 // MatrixRow an accessor to a line in a Matrix structure
+// Line feed and return characters are trimmed from written strings to prevent breaking the layout of the matrix.
 type MatrixRow interface {
 	io.StringWriter
 	io.Writer
@@ -203,7 +205,8 @@ func (r *matrixRow) Write(b []byte) (n int, err error) {
 	r.matrix.mx.Lock()
 	defer r.matrix.mx.Unlock()
 
-	r.matrix.lines[r.id.row] = string(b)
+	// we trim line feeds and return characters to prevent breaking the matrix layout
+	r.matrix.lines[r.id.row] = strings.Trim(string(b), "\n\r")
 	return len(b), nil
 }
 
