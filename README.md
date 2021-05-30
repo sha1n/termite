@@ -8,7 +8,7 @@
 [![Release Drafter](https://github.com/sha1n/termite/actions/workflows/release-drafter.yml/badge.svg)](https://github.com/sha1n/termite/actions/workflows/release-drafter.yml)
 
 
-<img src="docs/images/termite.png" width="96">
+<img src="/docs/images/termite.png" width="96">
 
 - [TERMite](#termite)
   - [Install](#install)
@@ -55,6 +55,6 @@ if tick, cancel, err := progressBar.Start(); err == nil {
 ```
 
 ## Showcase
-The code for this demo can be found in [internal/main.go](internal/main.go) (`go run internal/main.go`). 
+The code for this demo can be found in [internal/main.go](/internal/main.go) (`go run internal/main.go`). 
 
-<img src="docs/images/termite_demo_800.gif" width="100%">
+<img src="/docs/images/termite_demo_800.gif" width="100%">

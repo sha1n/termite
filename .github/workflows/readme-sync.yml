@@ -1,0 +1,28 @@
+#
+# This workflow monitors changes in README.md and syncs them with the docs/README.md which serves the generated site.
+#
+name: README Sync
+
+on:
+  push:
+    paths:
+      - "README.md"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Sync README
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |-
+          cp README.md docs/README.md
+      - name: Commit and push if README changed
+        run: |-
+          git diff
+          git config --global user.email "housekeeping-bot@example.com"
+          git config --global user.name "housekeeping-bot"
+          git diff --quiet || (git add docs/README.md && git commit -m "Synced README")
+          git push
