@@ -37,7 +37,6 @@ if _, e := spinner.Start(); e == nil {
   
   _ = spinner.Stop("Done!")
 }
-
 ```
 
 ### Progress Bar
@@ -50,8 +49,6 @@ if tick, cancel, err := progressBar.Start(); err == nil {
   
   doWork(tick)
 }
-
-
 ```
 
 ## Showcase
