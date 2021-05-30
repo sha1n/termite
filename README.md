@@ -55,3 +55,4 @@ if tick, cancel, err := progressBar.Start(); err == nil {
 The code for this demo can be found in [internal/main.go](https://github.com/sha1n/termite/blob/bd468fd578e96f32392d5e6abd0412b1dfd9edfa/internal/main.go) (`go run internal/main.go`). 
 
 <img src="docs/images/termite_demo_800.gif" width="100%">
+
