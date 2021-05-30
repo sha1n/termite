@@ -12,9 +12,9 @@
 
 - [TERMite](#termite)
   - [Install](#install)
-  - [Code Examples](#code-examples)
-    - [Spinner Progress Example](#spinner-progress-example)
-    - [Progress Bar Example](#progress-bar-example)
+  - [Examples](#examples)
+    - [Spinner](#spinner)
+    - [Progress Bar](#progress-bar)
   - [Showcase](#showcase)
 
 # TERMite
@@ -25,8 +25,8 @@ Termite is my playground for terminal app utilities and visual elements such as 
 go get github.com/sha1n/termite
 ```
 
-## Code Examples
-### Spinner Progress Example
+## Examples
+### Spinner
 ```go
 terminal := termite.NewTerminal(true)
 refreshInterval := time.Millisecond * 100
@@ -40,7 +40,7 @@ if _, e := spinner.Start(); e == nil {
 
 ```
 
-### Progress Bar Example
+### Progress Bar
 ```go
 terminal := termite.NewTerminal(true)
 progressBar := termite.NewDefaultProgressBar(terminal, workItems)
