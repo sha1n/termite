@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-var defaultSpinnerCharacters = []string{
-	"\u259B", "\u2599", "\u259F", "\u259C",
+var defaultSpinnerCharSeq = []string{
+	"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
 }
 
 // Spinner a spinning progress indicator
@@ -141,16 +141,12 @@ func (s *spinner) printExitMessage(message string) {
 }
 
 func createSpinnerRing() *ring.Ring {
-	r := ring.New(4)
+	r := ring.New(len(defaultSpinnerCharSeq))
 
-	r.Value = defaultSpinnerCharacters[0]
-	r = r.Next()
-	r.Value = defaultSpinnerCharacters[1]
-	r = r.Next()
-	r.Value = defaultSpinnerCharacters[2]
-	r = r.Next()
-	r.Value = defaultSpinnerCharacters[3]
-	r = r.Next()
+	for _, ch := range defaultSpinnerCharSeq {
+		r.Value = ch
+		r = r.Next()
+	}
 
 	return r
 }

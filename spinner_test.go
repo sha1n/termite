@@ -138,7 +138,7 @@ func assertStoppedEventually(t *testing.T, fakeTerminal *FakeTerminal, spinner *
 // TODO can this be simplified?
 func assertSpinnerCharSequence(t *testing.T, fakeTerminal *FakeTerminal) {
 	termOutput := fakeTerminal.Out
-	readChars := make([]string, 4)
+	readChars := make([]string, len(defaultSpinnerCharSeq))
 	readCharsCount := 0
 
 	readSequence := func() string {
@@ -159,21 +159,21 @@ func assertSpinnerCharSequence(t *testing.T, fakeTerminal *FakeTerminal) {
 	// find the first character in the spinner sequence, so we can validate order properly
 	for {
 		strippedString := readSequence()
-		if strippedString != "" && strippedString == defaultSpinnerCharacters[0] {
+		if strippedString != "" && strippedString == defaultSpinnerCharSeq[0] {
 			readChars[0] = strippedString
 			break
 		}
 		// guard against infinite loop caused by bugs
 		readCharsCount++
-		if readCharsCount > 8 {
+		if readCharsCount > len(defaultSpinnerCharSeq)*2 {
 			assert.Fail(t, "something went wrong...")
 		}
 	}
 
-	readChars[1] = readSequence()
-	readChars[2] = readSequence()
-	readChars[3] = readSequence()
+	for i := 1; i < len(defaultSpinnerCharSeq); i++ {
+		readChars[i] = readSequence()
+	}
 
-	assert.Equal(t, defaultSpinnerCharacters, readChars)
+	assert.Equal(t, defaultSpinnerCharSeq, readChars)
 
 }
