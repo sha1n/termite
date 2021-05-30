@@ -22,7 +22,7 @@ type Spinner interface {
 }
 
 type spinner struct {
-	writer   io.StringWriter
+	writer   io.Writer
 	interval time.Duration
 	mx       *sync.RWMutex
 	titleMx  *sync.RWMutex
@@ -32,7 +32,7 @@ type spinner struct {
 }
 
 // NewSpinner creates a new Spinner with the specified update interval
-func NewSpinner(writer io.StringWriter, title string, interval time.Duration) Spinner {
+func NewSpinner(writer io.Writer, title string, interval time.Duration) Spinner {
 	return &spinner{
 		writer:   writer,
 		interval: interval,
@@ -45,8 +45,12 @@ func NewSpinner(writer io.StringWriter, title string, interval time.Duration) Sp
 }
 
 // NewDefaultSpinner creates a new Spinner with a default update interval
-func NewDefaultSpinner(writer io.StringWriter) Spinner {
+func NewDefaultSpinner(writer io.Writer) Spinner {
 	return NewSpinner(writer, "", 500)
+}
+
+func (s *spinner) writeString(str string) (n int, err error) {
+	return io.WriteString(s.writer, str)
 }
 
 // Start starts the spinner in the background and returns a cancellation handle and an error in case the spinner is already running.
@@ -86,9 +90,9 @@ func (s *spinner) Start() (cancel context.CancelFunc, err error) {
 				spinring = spinring.Next()
 				title := s.getTitle()
 				if title != "" {
-					s.writer.WriteString(fmt.Sprintf("%s%s %s", TermControlEraseLine, spinring.Value, title))
+					s.writeString(fmt.Sprintf("%s%s %s", TermControlEraseLine, spinring.Value, title))
 				} else {
-					s.writer.WriteString(fmt.Sprintf("%s%s", TermControlEraseLine, spinring.Value))
+					s.writeString(fmt.Sprintf("%s%s", TermControlEraseLine, spinring.Value))
 				}
 
 			}
@@ -132,8 +136,8 @@ func (s *spinner) getTitle() string {
 }
 
 func (s *spinner) printExitMessage(message string) {
-	s.writer.WriteString(TermControlEraseLine)
-	s.writer.WriteString(message)
+	s.writeString(TermControlEraseLine)
+	s.writeString(message)
 }
 
 func createSpinnerRing() *ring.Ring {

@@ -16,7 +16,7 @@ const (
 func TestSpinnerCharSequence(t *testing.T) {
 	fakeTerminal := NewFakeTerminal(80, 80)
 
-	spinner := NewSpinner(fakeTerminal, "", interval)
+	spinner := NewSpinner(fakeTerminal.Out, "", interval)
 	cancel, err := spinner.Start()
 	defer cancel()
 
@@ -29,7 +29,7 @@ func TestSpinnerCharSequence(t *testing.T) {
 func TestSpinnerCancellation(t *testing.T) {
 	fakeTerminal := NewFakeTerminal(80, 80)
 
-	spin := NewSpinner(fakeTerminal, "", interval)
+	spin := NewSpinner(fakeTerminal.Out, "", interval)
 	cancel, _ := spin.Start()
 
 	assertSpinnerCharSequence(t, fakeTerminal)
@@ -41,7 +41,7 @@ func TestSpinnerCancellation(t *testing.T) {
 func TestSpinnerStartAlreadyRunning(t *testing.T) {
 	fakeTerminal := NewFakeTerminal(80, 80)
 
-	spin := NewSpinner(fakeTerminal, "", interval)
+	spin := NewSpinner(fakeTerminal.Out, "", interval)
 	cancel, _ := spin.Start()
 	defer cancel()
 
@@ -52,7 +52,7 @@ func TestSpinnerStartAlreadyRunning(t *testing.T) {
 func TestSpinnerStopAlreadyStopped(t *testing.T) {
 	fakeTerminal := NewFakeTerminal(80, 80)
 
-	spin := NewSpinner(fakeTerminal, "", interval)
+	spin := NewSpinner(fakeTerminal.Out, "", interval)
 	spin.Start()
 	err := spin.Stop("")
 	assert.NoError(t, err)
@@ -64,7 +64,7 @@ func TestSpinnerStopMessage(t *testing.T) {
 	expectedStopMessage := generateRandomString()
 	fakeTerminal := NewFakeTerminal(80, 80)
 
-	spin := NewSpinner(fakeTerminal, "", interval)
+	spin := NewSpinner(fakeTerminal.Out, "", interval)
 	spin.Start()
 	err := spin.Stop(expectedStopMessage)
 	assert.NoError(t, err)
@@ -77,7 +77,7 @@ func TestSpinnerTitle(t *testing.T) {
 	expectedTitle := generateRandomString()
 	fakeTerminal := NewFakeTerminal(80, 80)
 
-	spin := NewSpinner(fakeTerminal, expectedTitle, interval)
+	spin := NewSpinner(fakeTerminal.Out, expectedTitle, interval)
 	cancel, _ := spin.Start()
 	defer cancel()
 
@@ -89,7 +89,7 @@ func TestSpinnerSetTitle(t *testing.T) {
 	expectedUpdatedTitle := generateRandomString()
 	fakeTerminal := NewFakeTerminal(80, 80)
 
-	spin := NewSpinner(fakeTerminal, expectedInitialTitle, interval)
+	spin := NewSpinner(fakeTerminal.Out, expectedInitialTitle, interval)
 	cancel, _ := spin.Start()
 	defer cancel()
 

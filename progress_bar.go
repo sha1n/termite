@@ -22,7 +22,7 @@ type ProgressBar interface {
 type bar struct {
 	maxTicks    int
 	ticks       int
-	writer      io.StringWriter
+	writer      io.Writer
 	width       int
 	leftBorder  string
 	rightBorder string
@@ -39,7 +39,7 @@ type bar struct {
 // leftBorder 		- left border character
 // rightBorder 		- right border character
 // fill - fill character
-func NewProgressBar(writer io.StringWriter, maxTicks int, terminalWidth int, width int, leftBorder rune, rightBorder rune, fill rune) ProgressBar {
+func NewProgressBar(writer io.Writer, maxTicks int, terminalWidth int, width int, leftBorder rune, rightBorder rune, fill rune) ProgressBar {
 	return &bar{
 		maxTicks:    maxTicks,
 		ticks:       0,
@@ -55,7 +55,7 @@ func NewProgressBar(writer io.StringWriter, maxTicks int, terminalWidth int, wid
 // NewDefaultProgressBar creates a progress bar with styling
 func NewDefaultProgressBar(terminal Terminal, maxTicks int) ProgressBar {
 	return NewProgressBar(
-		terminal, maxTicks, terminal.Width()/2, terminal.Width(), '\u258F', '\u2595', '\u2587',
+		terminal.StdOut(), maxTicks, terminal.Width()/2, terminal.Width(), '\u258F', '\u2595', '\u2587',
 	)
 }
 
@@ -77,16 +77,17 @@ func (b *bar) Tick() bool {
 	charsToFill := int(percent * float32(totalChars))
 	spaceChars := totalChars - charsToFill
 
-	b.writer.WriteString(
-		fmt.Sprintf(
-			"%s%s%s%s%s %d%%\r",
-			TermControlEraseLine,
-			b.leftBorder, strings.Repeat(b.fill, charsToFill),
-			strings.Repeat(" ", spaceChars),
-			b.rightBorder,
-			int(percent*100),
-		),
-	)
+	b.writer.Write(
+		[]byte(
+			fmt.Sprintf(
+				"%s%s%s%s%s %d%%\r",
+				TermControlEraseLine,
+				b.leftBorder, strings.Repeat(b.fill, charsToFill),
+				strings.Repeat(" ", spaceChars),
+				b.rightBorder,
+				int(percent*100),
+			),
+		))
 
 	return spaceChars > 0
 }

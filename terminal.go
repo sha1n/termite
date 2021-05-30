@@ -13,8 +13,8 @@ import (
 )
 
 func init() {
-	StdoutWriter = os.Stdout
-	StderrWriter = os.Stderr
+	StdoutWriter = newSyncWriter(os.Stdout, true)
+	StderrWriter = newSyncWriter(os.Stderr, true)
 	StdinReader = os.Stdin
 
 	Tty = isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
@@ -24,7 +24,7 @@ func init() {
 		terminalWidth, terminalHeight, err = terminal.GetSize(int(os.Stdin.Fd()))
 
 		if err != nil {
-			println("failed to resolve retminal dimensions")
+			println("failed to resolve terminal dimensions")
 		}
 	}
 }
@@ -57,11 +57,35 @@ const (
 	TermControlCRLF = "\r\n"
 )
 
+type syncWriter struct {
+	writer    *bufio.Writer
+	outLock   *sync.Mutex
+	autoFlush bool
+}
+
+func newSyncWriter(w io.Writer, autoFlush bool) io.Writer {
+	return &syncWriter{
+		writer:    bufio.NewWriter(os.Stdout),
+		autoFlush: autoFlush,
+		outLock:   &sync.Mutex{},
+	}
+}
+
+func (sw *syncWriter) Write(b []byte) (int, error) {
+	sw.outLock.Lock()
+	defer sw.outLock.Unlock()
+
+	if sw.autoFlush {
+		defer sw.writer.Flush()
+	}
+
+	return sw.writer.Write(b)
+}
+
 // Terminal privides terminal related APIs
 type Terminal interface {
 	StdOut() io.Writer
 	StdErr() io.Writer
-	WriteString(s string) (int, error)
 	AllocateNewLines(int)
 
 	Width() int
@@ -72,19 +96,15 @@ type Terminal interface {
 }
 
 type term struct {
-	Out       *bufio.Writer
-	Err       *bufio.Writer
-	autoFlush bool
-	outLock   *sync.Mutex
+	Out io.Writer
+	Err io.Writer
 }
 
 // NewTerminal creates a instance of Terminal
 func NewTerminal(autoFlush bool) Terminal {
 	return &term{
-		Out:       bufio.NewWriter(StdoutWriter),
-		Err:       bufio.NewWriter(StderrWriter),
-		autoFlush: autoFlush,
-		outLock:   &sync.Mutex{},
+		Out: StdoutWriter,
+		Err: StderrWriter,
 	}
 }
 
@@ -111,25 +131,14 @@ func (t *term) StdErr() io.Writer {
 }
 
 func (t *term) Print(e interface{}) {
-	t.WriteString(fmt.Sprintf("%v", e))
+	io.WriteString(t.Out, fmt.Sprintf("%v", e))
 }
 
 func (t *term) Println(e interface{}) {
-	t.WriteString(fmt.Sprintf("%v%s", e, TermControlCRLF))
-}
-
-func (t *term) WriteString(s string) (n int, err error) {
-	t.outLock.Lock()
-	defer t.outLock.Unlock()
-
-	if t.autoFlush {
-		defer t.Out.Flush()
-	}
-
-	return t.Out.WriteString(s)
+	io.WriteString(t.Out, fmt.Sprintf("%v%s", e, TermControlCRLF))
 }
 
 func (t *term) AllocateNewLines(count int) {
-	t.Print(strings.Repeat("\n", count)) // allocate 4 lines
-	NewCursor(t).Up(count)               // return to start position
+	io.WriteString(t.Out, strings.Repeat("\n", count)) // allocate 4 lines
+	NewCursor(t.Out).Up(count)                         // return to start position
 }
