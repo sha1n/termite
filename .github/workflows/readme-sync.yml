@@ -24,7 +24,9 @@ jobs:
           sed -i 's/(docs\//(/g' docs/README.md
           sed -i 's/(\/docs\//(\//g' docs/README.md
           sed -i 's/"\/docs\//"\//g' docs/README.md
+          sed -i 's/src="docs\//src="/g' docs/README.md
           sed -i 's/src="\/docs\//src="\//g' docs/README.md
+          sed -i 's/href="docs\//href="/g' docs/README.md
           sed -i 's/href="\/docs\//href="\//g' docs/README.md
       - name: Commit and push if README changed
         run: |-
