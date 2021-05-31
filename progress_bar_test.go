@@ -10,7 +10,6 @@ import (
 
 const (
 	fakeTerminalWidth  = 100
-	fakeTerminalHeight = 100
 )
 
 func TestFullWidthProgressBar(t *testing.T) {
@@ -73,7 +72,7 @@ func TestStartCancel(t *testing.T) {
 
 func testProgressBarWith(t *testing.T, width, maxTicks int) {
 	emulatedStdout := new(bytes.Buffer)
-	bar := NewProgressBar(emulatedStdout, maxTicks, width, width, '|', '-', '|')
+	bar := NewProgressBar(emulatedStdout, maxTicks, width, width, DefaultProgressBarFormatter())
 
 	var count = 0
 	for {

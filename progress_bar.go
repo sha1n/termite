@@ -9,6 +9,44 @@ import (
 	"sync"
 )
 
+const (
+	DefaultProgressBarLeftBorder  = '\u258F'
+	DefaultProgressBarRightBorder = '\u2595'
+	DefaultProgressBarFill        = '\u2587'
+)
+
+func DefaultProgressBarFormatter() ProgressBarFormatter {
+	return &SimpleProgressBarFormatter{
+		LeftBorder:  DefaultProgressBarLeftBorder,
+		RightBorder: DefaultProgressBarRightBorder,
+		Fill:        DefaultProgressBarFill,
+	}
+}
+
+type ProgressBarFormatter interface {
+	FormatLeftBorder() string
+	FormatRightBorder() string
+	FormatFill() string
+}
+
+type SimpleProgressBarFormatter struct {
+	LeftBorder  rune
+	RightBorder rune
+	Fill        rune
+}
+
+func (f *SimpleProgressBarFormatter) FormatLeftBorder() string {
+	return fmt.Sprintf("%c", f.LeftBorder)
+}
+
+func (f *SimpleProgressBarFormatter) FormatRightBorder() string {
+	return fmt.Sprintf("%c", f.RightBorder)
+}
+
+func (f *SimpleProgressBarFormatter) FormatFill() string {
+	return fmt.Sprintf("%c", f.Fill)
+}
+
 // TickFn a tick handle
 type TickFn = func() bool
 
@@ -20,15 +58,13 @@ type ProgressBar interface {
 }
 
 type bar struct {
-	maxTicks    int
-	ticks       int
-	writer      io.Writer
-	width       int
-	leftBorder  string
-	rightBorder string
-	fill        string
-	active      bool
-	mx          *sync.RWMutex
+	maxTicks  int
+	ticks     int
+	writer    io.Writer
+	width     int
+	formatter ProgressBarFormatter
+	active    bool
+	mx        *sync.RWMutex
 }
 
 // NewProgressBar creates a new progress bar
@@ -36,26 +72,22 @@ type bar struct {
 // maxTicks 			- how many ticks are to be considered 100% of the progress
 // terminalWidth 	- the width of the terminal
 // width 					- bar width in characters
-// leftBorder 		- left border character
-// rightBorder 		- right border character
-// fill - fill character
-func NewProgressBar(writer io.Writer, maxTicks int, terminalWidth int, width int, leftBorder rune, rightBorder rune, fill rune) ProgressBar {
+// formatter 		  - a formatter for this progress bar
+func NewProgressBar(writer io.Writer, maxTicks int, terminalWidth int, width int, formatter ProgressBarFormatter) ProgressBar {
 	return &bar{
-		maxTicks:    maxTicks,
-		ticks:       0,
-		writer:      writer,
-		width:       min(width, terminalWidth-7), // 7 = 2 borders, 3 digits, % sign + 1 padding char
-		leftBorder:  string(leftBorder),
-		rightBorder: string(rightBorder),
-		fill:        string(fill),
-		mx:          &sync.RWMutex{},
+		maxTicks:  maxTicks,
+		ticks:     0,
+		writer:    writer,
+		width:     min(width, terminalWidth-7), // 7 = 2 borders, 3 digits, % sign + 1 padding char
+		formatter: formatter,
+		mx:        &sync.RWMutex{},
 	}
 }
 
 // NewDefaultProgressBar creates a progress bar with styling
 func NewDefaultProgressBar(writer io.Writer, terminalWidth int, maxTicks int) ProgressBar {
 	return NewProgressBar(
-		writer, maxTicks, terminalWidth/2, terminalWidth, '\u258F', '\u2595', '\u2587',
+		writer, maxTicks, terminalWidth/2, terminalWidth, DefaultProgressBarFormatter(),
 	)
 }
 
@@ -82,9 +114,10 @@ func (b *bar) Tick() bool {
 		fmt.Sprintf(
 			"%s%s%s%s%s %d%%\r",
 			TermControlEraseLine,
-			b.leftBorder, strings.Repeat(b.fill, charsToFill),
+			b.formatter.FormatLeftBorder(),
+			strings.Repeat(b.formatter.FormatFill(), charsToFill),
 			strings.Repeat(" ", spaceChars),
-			b.rightBorder,
+			b.formatter.FormatRightBorder(),
 			int(percent*100),
 		),
 	)
