@@ -58,7 +58,7 @@ type MatrixRow interface {
 type matrixImpl struct {
 	lines           []string
 	refreshInterval time.Duration
-	writer          io.StringWriter
+	writer          io.Writer
 	mx              *sync.RWMutex
 }
 
@@ -68,7 +68,7 @@ type matrixRow struct {
 }
 
 // NewMatrix creates a new matrix that writes to the specified writer and refreshes every refreshInterval.
-func NewMatrix(writer io.StringWriter, refreshInterval time.Duration) Matrix {
+func NewMatrix(writer io.Writer, refreshInterval time.Duration) Matrix {
 	return &matrixImpl{
 		lines:           []string{},
 		refreshInterval: refreshInterval,
@@ -153,7 +153,7 @@ func (m *matrixImpl) updateTerminal(resetCursorPosition bool) {
 	}
 
 	for _, line := range m.lines {
-		m.writer.WriteString(fmt.Sprintf("%s%s\r\n", TermControlEraseLine, line))
+		io.WriteString(m.writer, fmt.Sprintf("%s%s\r\n", TermControlEraseLine, line))
 	}
 
 	if resetCursorPosition {

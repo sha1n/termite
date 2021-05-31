@@ -19,48 +19,52 @@ type Cursor interface {
 }
 
 type cursor struct {
-	writer io.StringWriter
+	writer io.Writer
 }
 
 // NewCursor returns a new cursor for the specified terminal
-func NewCursor(writer io.StringWriter) Cursor {
+func NewCursor(writer io.Writer) Cursor {
 	return &cursor{
 		writer: writer,
 	}
 }
 
 func (c *cursor) Position(row, col int) {
-	c.writer.WriteString(fmt.Sprintf("\033[%d;%dH", row, col))
+	c.writeString(fmt.Sprintf("\033[%d;%dH", row, col))
 }
 
 func (c *cursor) Up(lines int) {
-	c.writer.WriteString(fmt.Sprintf("\033[%dA", lines))
+	c.writeString(fmt.Sprintf("\033[%dA", lines))
 }
 
 func (c *cursor) Down(lines int) {
-	c.writer.WriteString(fmt.Sprintf("\033[%dB", lines))
+	c.writeString(fmt.Sprintf("\033[%dB", lines))
 }
 
 func (c *cursor) Forward(cols int) {
-	c.writer.WriteString(fmt.Sprintf("\033[%dC", cols))
+	c.writeString(fmt.Sprintf("\033[%dC", cols))
 }
 
 func (c *cursor) Backward(cols int) {
-	c.writer.WriteString(fmt.Sprintf("\033[%dD", cols))
+	c.writeString(fmt.Sprintf("\033[%dD", cols))
 }
 
 func (c *cursor) Hide() {
-	c.writer.WriteString("\033[?25l")
+	c.writeString("\033[?25l")
 }
 
 func (c *cursor) Show() {
-	c.writer.WriteString("\033[?25h")
+	c.writeString("\033[?25h")
 }
 
 func (c *cursor) SavePosition() {
-	c.writer.WriteString("\033[s")
+	c.writeString("\033[s")
 }
 
 func (c *cursor) RestorePosition() {
-	c.writer.WriteString("\033[u")
+	c.writeString("\033[u")
+}
+
+func (c *cursor) writeString(s string) {
+	io.WriteString(c.writer, s)
 }

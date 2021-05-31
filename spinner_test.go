@@ -1,6 +1,7 @@
 package termite
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 	"time"
@@ -14,34 +15,34 @@ const (
 )
 
 func TestSpinnerCharSequence(t *testing.T) {
-	fakeTerminal := NewFakeTerminal(80, 80)
+	emulatedStdout := new(bytes.Buffer)
 
-	spinner := NewSpinner(fakeTerminal, "", interval)
+	spinner := NewSpinner(emulatedStdout, "", interval)
 	cancel, err := spinner.Start()
 	defer cancel()
 
 	assert.NoError(t, err)
 	assert.NotNil(t, cancel)
 
-	assertSpinnerCharSequence(t, fakeTerminal)
+	assertSpinnerCharSequence(t, emulatedStdout)
 }
 
 func TestSpinnerCancellation(t *testing.T) {
-	fakeTerminal := NewFakeTerminal(80, 80)
+	emulatedStdout := new(bytes.Buffer)
 
-	spin := NewSpinner(fakeTerminal, "", interval)
+	spin := NewSpinner(emulatedStdout, "", interval)
 	cancel, _ := spin.Start()
 
-	assertSpinnerCharSequence(t, fakeTerminal)
+	assertSpinnerCharSequence(t, emulatedStdout)
 
 	cancel()
-	assertStoppedEventually(t, fakeTerminal, spin.(*spinner))
+	assertStoppedEventually(t, emulatedStdout, spin.(*spinner))
 }
 
 func TestSpinnerStartAlreadyRunning(t *testing.T) {
-	fakeTerminal := NewFakeTerminal(80, 80)
+	emulatedStdout := new(bytes.Buffer)
 
-	spin := NewSpinner(fakeTerminal, "", interval)
+	spin := NewSpinner(emulatedStdout, "", interval)
 	cancel, _ := spin.Start()
 	defer cancel()
 
@@ -50,9 +51,9 @@ func TestSpinnerStartAlreadyRunning(t *testing.T) {
 }
 
 func TestSpinnerStopAlreadyStopped(t *testing.T) {
-	fakeTerminal := NewFakeTerminal(80, 80)
+	emulatedStdout := new(bytes.Buffer)
 
-	spin := NewSpinner(fakeTerminal, "", interval)
+	spin := NewSpinner(emulatedStdout, "", interval)
 	spin.Start()
 	err := spin.Stop("")
 	assert.NoError(t, err)
@@ -62,62 +63,60 @@ func TestSpinnerStopAlreadyStopped(t *testing.T) {
 
 func TestSpinnerStopMessage(t *testing.T) {
 	expectedStopMessage := generateRandomString()
-	fakeTerminal := NewFakeTerminal(80, 80)
+	emulatedStdout := new(bytes.Buffer)
 
-	spin := NewSpinner(fakeTerminal, "", interval)
+	spin := NewSpinner(emulatedStdout, "", interval)
 	spin.Start()
 	err := spin.Stop(expectedStopMessage)
 	assert.NoError(t, err)
 
-	assertBufferEventuallyContains(t, fakeTerminal, expectedStopMessage)
-	assert.NotContains(t, fakeTerminal.Out.String(), "\n", "line feed is expected!")
+	assertBufferEventuallyContains(t, emulatedStdout, expectedStopMessage)
+	assert.NotContains(t, emulatedStdout.String(), "\n", "line feed is expected!")
 }
 
 func TestSpinnerTitle(t *testing.T) {
 	expectedTitle := generateRandomString()
-	fakeTerminal := NewFakeTerminal(80, 80)
+	emulatedStdout := new(bytes.Buffer)
 
-	spin := NewSpinner(fakeTerminal, expectedTitle, interval)
+	spin := NewSpinner(emulatedStdout, expectedTitle, interval)
 	cancel, _ := spin.Start()
 	defer cancel()
 
-	assertBufferEventuallyContains(t, fakeTerminal, expectedTitle)
+	assertBufferEventuallyContains(t, emulatedStdout, expectedTitle)
 }
 
 func TestSpinnerSetTitle(t *testing.T) {
 	expectedInitialTitle := generateRandomString()
 	expectedUpdatedTitle := generateRandomString()
-	fakeTerminal := NewFakeTerminal(80, 80)
+	emulatedStdout := new(bytes.Buffer)
 
-	spin := NewSpinner(fakeTerminal, expectedInitialTitle, interval)
+	spin := NewSpinner(emulatedStdout, expectedInitialTitle, interval)
 	cancel, _ := spin.Start()
 	defer cancel()
 
-	assertBufferEventuallyContains(t, fakeTerminal, expectedInitialTitle)
+	assertBufferEventuallyContains(t, emulatedStdout, expectedInitialTitle)
 
 	spin.SetTitle(expectedUpdatedTitle)
 
-	assertBufferEventuallyContains(t, fakeTerminal, expectedUpdatedTitle)
+	assertBufferEventuallyContains(t, emulatedStdout, expectedUpdatedTitle)
 }
 
-func assertBufferEventuallyContains(t *testing.T, fakeTerminal *FakeTerminal, expected string) {
+func assertBufferEventuallyContains(t *testing.T, outBuffer *bytes.Buffer, expected string) {
 	assert.Eventually(
 		t,
-		bufferContains(fakeTerminal, expected),
+		bufferContains(outBuffer, expected),
 		timeout,
 		interval,
 	)
 }
 
-func bufferContains(fakeTerminal *FakeTerminal, expected string) func() bool {
+func bufferContains(outBuffer *bytes.Buffer, expected string) func() bool {
 	return func() bool {
-		return strings.Contains(fakeTerminal.Out.String(), expected)
+		return strings.Contains(outBuffer.String(), expected)
 	}
 }
 
-func assertStoppedEventually(t *testing.T, fakeTerminal *FakeTerminal, spinner *spinner) {
-	termOutput := fakeTerminal.Out
-
+func assertStoppedEventually(t *testing.T, outBuffer *bytes.Buffer, spinner *spinner) {
 	assert.Eventually(
 		t,
 		func() bool { return !spinner.isActiveSafe() },
@@ -125,26 +124,25 @@ func assertStoppedEventually(t *testing.T, fakeTerminal *FakeTerminal, spinner *
 		interval,
 	)
 
-	termOutput.Reset() // clear the buffer
+	outBuffer.Reset() // clear the buffer
 
 	assert.Eventually(
 		t,
-		func() bool { return termOutput.UnreadByte() != nil },
+		func() bool { return outBuffer.UnreadByte() != nil },
 		timeout,
 		spinner.interval,
 	)
 }
 
 // TODO can this be simplified?
-func assertSpinnerCharSequence(t *testing.T, fakeTerminal *FakeTerminal) {
-	termOutput := fakeTerminal.Out
-	readChars := make([]string, 4)
+func assertSpinnerCharSequence(t *testing.T, outBuffer *bytes.Buffer) {
+	readChars := make([]string, len(defaultSpinnerCharSeq))
 	readCharsCount := 0
 
 	readSequence := func() string {
 		startTime := time.Now()
 		for {
-			s, _ := termOutput.ReadString(TermControlEraseLine[len(TermControlEraseLine)-1]) // read everything you got
+			s, _ := outBuffer.ReadString(TermControlEraseLine[len(TermControlEraseLine)-1]) // read everything you got
 			if strippedString := strings.Trim(s, TermControlEraseLine); strippedString != "" {
 				return strippedString
 			}
@@ -159,21 +157,21 @@ func assertSpinnerCharSequence(t *testing.T, fakeTerminal *FakeTerminal) {
 	// find the first character in the spinner sequence, so we can validate order properly
 	for {
 		strippedString := readSequence()
-		if strippedString != "" && strippedString == defaultSpinnerCharacters[0] {
+		if strippedString != "" && strippedString == defaultSpinnerCharSeq[0] {
 			readChars[0] = strippedString
 			break
 		}
 		// guard against infinite loop caused by bugs
 		readCharsCount++
-		if readCharsCount > 8 {
+		if readCharsCount > len(defaultSpinnerCharSeq)*2 {
 			assert.Fail(t, "something went wrong...")
 		}
 	}
 
-	readChars[1] = readSequence()
-	readChars[2] = readSequence()
-	readChars[3] = readSequence()
+	for i := 1; i < len(defaultSpinnerCharSeq); i++ {
+		readChars[i] = readSequence()
+	}
 
-	assert.Equal(t, defaultSpinnerCharacters, readChars)
+	assert.Equal(t, defaultSpinnerCharSeq, readChars)
 
 }

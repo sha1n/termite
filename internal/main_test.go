@@ -1,10 +1,30 @@
 package main
 
 import (
-	"github.com/sha1n/termite"
+	"bytes"
 	"testing"
+
+	"github.com/sha1n/termite"
 )
 
 func TestSanity(t *testing.T) {
-	demo(termite.NewFakeTerminal(272, 72))
+	ctx, teardown := setupContext()
+	defer teardown()
+
+	demo(ctx)
+}
+
+func setupContext() (c *demoContext, teardown func()) {
+	origStdout := termite.StdoutWriter
+	emulatedStdout := termite.NewAutoFlushingWriter(new(bytes.Buffer))
+
+	teardown = func() { termite.StdoutWriter = origStdout }
+
+	termite.StdoutWriter = emulatedStdout
+	c = &demoContext{
+		out:       emulatedStdout,
+		termWidth: 80,
+	}
+
+	return c, teardown
 }
