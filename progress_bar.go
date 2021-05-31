@@ -53,9 +53,9 @@ func NewProgressBar(writer io.Writer, maxTicks int, terminalWidth int, width int
 }
 
 // NewDefaultProgressBar creates a progress bar with styling
-func NewDefaultProgressBar(terminal Terminal, maxTicks int) ProgressBar {
+func NewDefaultProgressBar(writer io.Writer, terminalWidth int, maxTicks int) ProgressBar {
 	return NewProgressBar(
-		terminal.StdOut(), maxTicks, terminal.Width()/2, terminal.Width(), '\u258F', '\u2595', '\u2587',
+		writer, maxTicks, terminalWidth/2, terminalWidth, '\u258F', '\u2595', '\u2587',
 	)
 }
 
@@ -77,17 +77,17 @@ func (b *bar) Tick() bool {
 	charsToFill := int(percent * float32(totalChars))
 	spaceChars := totalChars - charsToFill
 
-	b.writer.Write(
-		[]byte(
-			fmt.Sprintf(
-				"%s%s%s%s%s %d%%\r",
-				TermControlEraseLine,
-				b.leftBorder, strings.Repeat(b.fill, charsToFill),
-				strings.Repeat(" ", spaceChars),
-				b.rightBorder,
-				int(percent*100),
-			),
-		))
+	io.WriteString(
+		b.writer,
+		fmt.Sprintf(
+			"%s%s%s%s%s %d%%\r",
+			TermControlEraseLine,
+			b.leftBorder, strings.Repeat(b.fill, charsToFill),
+			strings.Repeat(" ", spaceChars),
+			b.rightBorder,
+			int(percent*100),
+		),
+	)
 
 	return spaceChars > 0
 }

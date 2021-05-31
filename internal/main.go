@@ -36,13 +36,13 @@ const splash = `
 `
 
 func main() {
-	t := termite.NewTerminal(true)
+	t := termite.NewTerminal()
 	t.Println(splash)
 	demo(t)
 }
 
 func demo(t termite.Terminal) {
-	c := termite.NewCursor(t.StdOut())
+	c := termite.NewCursor(termite.StdoutWriter)
 	c.Hide()
 	defer c.Show()
 
@@ -55,7 +55,7 @@ func demo(t termite.Terminal) {
 func demoMatrix(t termite.Terminal) {
 	printTitle("Matrix Layout", t)
 
-	m := termite.NewMatrix(t.StdOut(), progressRefreshInterval)
+	m := termite.NewMatrix(termite.StdoutWriter, progressRefreshInterval)
 	cancel := m.Start()
 
 	// allocating rows for 5 tasks and one space row
@@ -93,7 +93,7 @@ func demoMatrix(t termite.Terminal) {
 func demoSpinner(t termite.Terminal) {
 	printTitle("Spinner progress indicator", t)
 
-	spinner := termite.NewSpinner(t.StdOut(), "Running...", spinnerRefreshInterval)
+	spinner := termite.NewSpinner(termite.StdoutWriter, "Running...", spinnerRefreshInterval)
 	if _, e := spinner.Start(); e == nil {
 		time.Sleep(time.Second * 1)
 		spinner.SetTitle("Finishing...")
@@ -111,7 +111,7 @@ func demoCursor(t termite.Terminal) {
 		return fmt.Sprintf("- Task %s %s", name, status)
 	}
 
-	cursor := termite.NewCursor(t.StdOut())
+	cursor := termite.NewCursor(termite.StdoutWriter)
 	t.Println(fmtTaskStatus("A", "pending..."))
 	t.Println(fmtTaskStatus("B", "pending..."))
 	t.Println(fmtTaskStatus("C", "pending..."))
@@ -139,10 +139,10 @@ func demoCursor(t termite.Terminal) {
 func demoConcurrentProgressBars(t termite.Terminal) {
 	printTitle("Concurrent tasks progress", t)
 
-	cursor := termite.NewCursor(t.StdOut())
+	cursor := termite.NewCursor(termite.StdoutWriter)
 	ticks := 20
 	progressTickerWith := func(width int, fill rune) (func(), context.CancelFunc) {
-		bar := termite.NewProgressBar(t.StdOut(), ticks, width, t.Width(), fill, fill, fill)
+		bar := termite.NewProgressBar(termite.StdoutWriter, ticks, width, t.Width(), fill, fill, fill)
 		tick, cancel, _ := bar.Start()
 
 		return func() {

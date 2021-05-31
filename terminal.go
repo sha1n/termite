@@ -61,7 +61,7 @@ type term struct {
 }
 
 // NewTerminal creates a instance of Terminal
-func NewTerminal(autoFlush bool) Terminal {
+func NewTerminal() Terminal {
 	return &term{
 		Out: StdoutWriter,
 		Err: StderrWriter,

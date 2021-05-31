@@ -1,15 +1,12 @@
 package termite
 
 import (
-	"bufio"
 	"bytes"
 )
 
 // FakeTerminal a fake Terminal implementation for testing purposes.
 type FakeTerminal struct {
 	Terminal
-	Out    *bytes.Buffer
-	Err    *bytes.Buffer
 	width  int
 	height int
 }
@@ -19,13 +16,11 @@ func NewFakeTerminal(width, height int) *FakeTerminal {
 	outBuf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 
-	t := NewTerminal(true)
-	(t.(*term)).Out = bufio.NewWriter(outBuf)
-	(t.(*term)).Err = bufio.NewWriter(errBuf)
+	t := NewTerminal()
+	(t.(*term)).Out = NewAutoFlushingWriter(outBuf)
+	(t.(*term)).Err = NewAutoFlushingWriter(errBuf)
 
 	return &FakeTerminal{
-		Out:      outBuf,
-		Err:      errBuf,
 		width:    width,
 		height:   height,
 		Terminal: t,

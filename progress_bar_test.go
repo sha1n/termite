@@ -1,6 +1,7 @@
 package termite
 
 import (
+	"bytes"
 	"math/rand"
 	"testing"
 
@@ -12,8 +13,6 @@ const (
 	fakeTerminalHeight = 100
 )
 
-var fakeTerminal = NewFakeTerminal(fakeTerminalWidth, fakeTerminalHeight)
-
 func TestFullWidthProgressBar(t *testing.T) {
 	testProgressBarWith(t, fakeTerminalWidth, fakeTerminalWidth)
 }
@@ -23,7 +22,8 @@ func TestOversizedProgressBar(t *testing.T) {
 }
 
 func TestTickAnAlreadyDoneProgressBar(t *testing.T) {
-	bar := NewDefaultProgressBar(fakeTerminal, 2)
+	var emulatedStdout = new(bytes.Buffer)
+	bar := NewDefaultProgressBar(emulatedStdout, fakeTerminalWidth, 2)
 
 	assert.True(t, bar.Tick())
 	assert.False(t, bar.Tick())
@@ -32,7 +32,8 @@ func TestTickAnAlreadyDoneProgressBar(t *testing.T) {
 }
 
 func TestStart(t *testing.T) {
-	bar := NewDefaultProgressBar(fakeTerminal, 2)
+	emulatedStdout := new(bytes.Buffer)
+	bar := NewDefaultProgressBar(emulatedStdout, fakeTerminalWidth, 2)
 
 	tick, cancel, err := bar.Start()
 
@@ -45,7 +46,8 @@ func TestStart(t *testing.T) {
 }
 
 func TestStartWithAlreadyStartedBar(t *testing.T) {
-	bar := NewDefaultProgressBar(fakeTerminal, 2)
+	emulatedStdout := new(bytes.Buffer)
+	bar := NewDefaultProgressBar(emulatedStdout, fakeTerminalWidth, 2)
 
 	_, _, err := bar.Start()
 	assert.NoError(t, err)
@@ -55,7 +57,8 @@ func TestStartWithAlreadyStartedBar(t *testing.T) {
 }
 
 func TestStartCancel(t *testing.T) {
-	bar := NewDefaultProgressBar(fakeTerminal, 2)
+	emulatedStdout := new(bytes.Buffer)
+	bar := NewDefaultProgressBar(emulatedStdout, fakeTerminalWidth, 2)
 
 	tick, cancel, err := bar.Start()
 
@@ -69,7 +72,8 @@ func TestStartCancel(t *testing.T) {
 }
 
 func testProgressBarWith(t *testing.T, width, maxTicks int) {
-	bar := NewProgressBar(fakeTerminal.Out, maxTicks, width, width, '|', '-', '|')
+	emulatedStdout := new(bytes.Buffer)
+	bar := NewProgressBar(emulatedStdout, maxTicks, width, width, '|', '-', '|')
 
 	var count = 0
 	for {

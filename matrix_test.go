@@ -150,8 +150,8 @@ func expectedOutputSequenceFor(examples []string) string {
 }
 
 func startNewMatrix() (Matrix, context.CancelFunc) {
-	term := NewFakeTerminal(80, 80)
-	matrix := NewMatrix(term.Out, time.Millisecond)
+	emulatedOutput := new(bytes.Buffer)
+	matrix := NewMatrix(emulatedOutput, time.Millisecond)
 	cancel := matrix.Start()
 
 	return matrix, cancel
