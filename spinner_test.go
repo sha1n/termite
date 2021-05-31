@@ -143,7 +143,7 @@ func assertSpinnerCharSequence(t *testing.T, outBuffer *bytes.Buffer) {
 		startTime := time.Now()
 		for {
 			s, _ := outBuffer.ReadString(TermControlEraseLine[len(TermControlEraseLine)-1]) // read everything you got
-			if strippedString := strings.Trim(s, TermControlEraseLine + "\x00"); strippedString != "" {
+			if strippedString := strings.Trim(s, TermControlEraseLine+"\x00"); strippedString != "" {
 				return strippedString
 			}
 
