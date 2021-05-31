@@ -10,8 +10,32 @@ import (
 	"time"
 )
 
-var defaultSpinnerCharSeq = []string{
-	"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
+func DefaultSpinnerCharSeq() []string {
+	return []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+}
+
+func DefaultSpinnerFormatter() SpinnerFormatter {
+	return &SimpleSpinnerFormatter{}
+}
+
+type SpinnerFormatter interface {
+	FormatTitle(s string) string
+	FormatIndicator(char string) string
+	CharSeq() []string
+}
+
+type SimpleSpinnerFormatter struct{}
+
+func (f *SimpleSpinnerFormatter) FormatTitle(s string) string {
+	return s
+}
+
+func (f *SimpleSpinnerFormatter) FormatIndicator(char string) string {
+	return char
+}
+
+func (f *SimpleSpinnerFormatter) CharSeq() []string {
+	return DefaultSpinnerCharSeq()
 }
 
 // Spinner a spinning progress indicator
@@ -22,31 +46,33 @@ type Spinner interface {
 }
 
 type spinner struct {
-	writer   io.Writer
-	interval time.Duration
-	mx       *sync.RWMutex
-	titleMx  *sync.RWMutex
-	active   bool
-	stopC    chan bool
-	title    string
+	writer    io.Writer
+	interval  time.Duration
+	mx        *sync.RWMutex
+	titleMx   *sync.RWMutex
+	active    bool
+	stopC     chan bool
+	title     string
+	formatter SpinnerFormatter
 }
 
 // NewSpinner creates a new Spinner with the specified update interval
-func NewSpinner(writer io.Writer, title string, interval time.Duration) Spinner {
+func NewSpinner(writer io.Writer, title string, interval time.Duration, formatter SpinnerFormatter) Spinner {
 	return &spinner{
-		writer:   writer,
-		interval: interval,
-		mx:       &sync.RWMutex{},
-		titleMx:  &sync.RWMutex{},
-		active:   false,
-		stopC:    make(chan bool),
-		title:    title,
+		writer:    writer,
+		interval:  interval,
+		mx:        &sync.RWMutex{},
+		titleMx:   &sync.RWMutex{},
+		active:    false,
+		stopC:     make(chan bool),
+		title:     title,
+		formatter: formatter,
 	}
 }
 
 // NewDefaultSpinner creates a new Spinner that writes to Stdout with a default update interval
 func NewDefaultSpinner() Spinner {
-	return NewSpinner(StdoutWriter, "", 500)
+	return NewSpinner(StdoutWriter, "", 500, DefaultSpinnerFormatter())
 }
 
 func (s *spinner) writeString(str string) (n int, err error) {
@@ -68,7 +94,7 @@ func (s *spinner) Start() (cancel context.CancelFunc, err error) {
 	waitStart.Add(1)
 
 	go func() {
-		var spinring = createSpinnerRing()
+		var spinring = s.createSpinnerRing()
 		timer := time.NewTicker(s.interval)
 
 		waitStart.Done()
@@ -89,10 +115,11 @@ func (s *spinner) Start() (cancel context.CancelFunc, err error) {
 			case <-timer.C:
 				spinring = spinring.Next()
 				title := s.getTitle()
+				indicatorValue := s.formatter.FormatIndicator(fmt.Sprintf("%v", spinring.Value))
 				if title != "" {
-					s.writeString(fmt.Sprintf("%s%s %s", TermControlEraseLine, spinring.Value, title))
+					s.writeString(fmt.Sprintf("%s%s %s", TermControlEraseLine, indicatorValue, s.formatter.FormatTitle(title)))
 				} else {
-					s.writeString(fmt.Sprintf("%s%s", TermControlEraseLine, spinring.Value))
+					s.writeString(fmt.Sprintf("%s%s", TermControlEraseLine, indicatorValue))
 				}
 
 			}
@@ -140,10 +167,10 @@ func (s *spinner) printExitMessage(message string) {
 	s.writeString(message)
 }
 
-func createSpinnerRing() *ring.Ring {
-	r := ring.New(len(defaultSpinnerCharSeq))
+func (s *spinner) createSpinnerRing() *ring.Ring {
+	r := ring.New(len(s.formatter.CharSeq()))
 
-	for _, ch := range defaultSpinnerCharSeq {
+	for _, ch := range s.formatter.CharSeq() {
 		r.Value = ch
 		r = r.Next()
 	}
