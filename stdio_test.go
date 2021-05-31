@@ -10,7 +10,7 @@ import (
 func TestNewAutoFlushingWriter(t *testing.T) {
 	buf := new(bytes.Buffer)
 	expected := randomBytes()
-	
+
 	writer := NewAutoFlushingWriter(buf)
 	writer.Write(expected)
 
