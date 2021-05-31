@@ -25,22 +25,20 @@ func init() {
 
 // AutoFlushingWriter an implementation of an io.Writer and io.StringWriter with auto-flush semantics.
 type AutoFlushingWriter struct {
-	io.StringWriter
-	io.Writer
-	writer *bufio.Writer
+	Writer *bufio.Writer
 }
 
 // NewAutoFlushingWriter creates a new io.Writer that uses a buffer internally and flushes after every write.
 // This writer should be used on top of Stdout and Stderr for components that require frequent screen updates.
 func NewAutoFlushingWriter(w io.Writer) *AutoFlushingWriter {
 	return &AutoFlushingWriter{
-		writer: bufio.NewWriter(w),
+		Writer: bufio.NewWriter(w),
 	}
 }
 
 func (sw *AutoFlushingWriter) Write(b []byte) (int, error) {
-	defer sw.writer.Flush()
-	return sw.writer.Write(b)
+	defer sw.Writer.Flush()
+	return sw.Writer.Write(b)
 }
 
 // WriteString uses io.WriteString to write the specified string to the underlying writer.
