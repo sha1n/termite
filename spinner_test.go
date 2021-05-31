@@ -17,7 +17,7 @@ const (
 func TestSpinnerCharSequence(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
-	spinner := NewSpinner(emulatedStdout, "", interval)
+	spinner := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
 	cancel, err := spinner.Start()
 	defer cancel()
 
@@ -30,7 +30,7 @@ func TestSpinnerCharSequence(t *testing.T) {
 func TestSpinnerCancellation(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
-	spin := NewSpinner(emulatedStdout, "", interval)
+	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
 	cancel, _ := spin.Start()
 
 	assertSpinnerCharSequence(t, emulatedStdout)
@@ -42,7 +42,7 @@ func TestSpinnerCancellation(t *testing.T) {
 func TestSpinnerStartAlreadyRunning(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
-	spin := NewSpinner(emulatedStdout, "", interval)
+	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
 	cancel, _ := spin.Start()
 	defer cancel()
 
@@ -53,7 +53,7 @@ func TestSpinnerStartAlreadyRunning(t *testing.T) {
 func TestSpinnerStopAlreadyStopped(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
-	spin := NewSpinner(emulatedStdout, "", interval)
+	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
 	spin.Start()
 	err := spin.Stop("")
 	assert.NoError(t, err)
@@ -65,7 +65,7 @@ func TestSpinnerStopMessage(t *testing.T) {
 	expectedStopMessage := generateRandomString()
 	emulatedStdout := new(bytes.Buffer)
 
-	spin := NewSpinner(emulatedStdout, "", interval)
+	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
 	spin.Start()
 	err := spin.Stop(expectedStopMessage)
 	assert.NoError(t, err)
@@ -78,7 +78,7 @@ func TestSpinnerTitle(t *testing.T) {
 	expectedTitle := generateRandomString()
 	emulatedStdout := new(bytes.Buffer)
 
-	spin := NewSpinner(emulatedStdout, expectedTitle, interval)
+	spin := NewSpinner(emulatedStdout, expectedTitle, interval, DefaultSpinnerFormatter())
 	cancel, _ := spin.Start()
 	defer cancel()
 
@@ -90,7 +90,7 @@ func TestSpinnerSetTitle(t *testing.T) {
 	expectedUpdatedTitle := generateRandomString()
 	emulatedStdout := new(bytes.Buffer)
 
-	spin := NewSpinner(emulatedStdout, expectedInitialTitle, interval)
+	spin := NewSpinner(emulatedStdout, expectedInitialTitle, interval, DefaultSpinnerFormatter())
 	cancel, _ := spin.Start()
 	defer cancel()
 
@@ -136,7 +136,8 @@ func assertStoppedEventually(t *testing.T, outBuffer *bytes.Buffer, spinner *spi
 
 // TODO can this be simplified?
 func assertSpinnerCharSequence(t *testing.T, outBuffer *bytes.Buffer) {
-	readChars := make([]string, len(defaultSpinnerCharSeq))
+	charSeq := DefaultSpinnerCharSeq()
+	readChars := make([]string, len(charSeq))
 	readCharsCount := 0
 
 	readSequence := func() string {
@@ -157,21 +158,21 @@ func assertSpinnerCharSequence(t *testing.T, outBuffer *bytes.Buffer) {
 	// find the first character in the spinner sequence, so we can validate order properly
 	for {
 		strippedString := readSequence()
-		if strippedString != "" && strippedString == defaultSpinnerCharSeq[0] {
+		if strippedString != "" && strippedString == charSeq[0] {
 			readChars[0] = strippedString
 			break
 		}
 		// guard against infinite loop caused by bugs
 		readCharsCount++
-		if readCharsCount > len(defaultSpinnerCharSeq)*2 {
+		if readCharsCount > len(charSeq)*2 {
 			assert.Fail(t, "something went wrong...")
 		}
 	}
 
-	for i := 1; i < len(defaultSpinnerCharSeq); i++ {
+	for i := 1; i < len(charSeq); i++ {
 		readChars[i] = readSequence()
 	}
 
-	assert.Equal(t, defaultSpinnerCharSeq, readChars)
+	assert.Equal(t, charSeq, readChars)
 
 }

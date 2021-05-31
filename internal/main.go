@@ -112,15 +112,39 @@ func demoMatrix(ctx *demoContext) {
 func demoSpinner(ctx *demoContext) {
 	printTitle("Spinner progress indicator", ctx)
 
-	spinner := termite.NewSpinner(termite.StdoutWriter, "Running...", spinnerRefreshInterval)
-	if _, e := spinner.Start(); e == nil {
-		time.Sleep(time.Second * 1)
+	m := termite.NewMatrix(termite.StdoutWriter, progressRefreshInterval)
+	cancel := m.Start()
+
+	customFormatter1 := &CustomSpinnerFormatter{
+		charSeq:         []string{"\u2588", "\u2587", "\u2586", "\u2585", "\u2584", "\u2583", "\u2582", "\u2581"},
+		formatTitle:     color.CyanString,
+		formatIndicator: color.RedString,
+	}
+	customFormatter2 := &CustomSpinnerFormatter{
+		charSeq:         []string{"/", "-", "\\", "|"},
+		formatTitle:     color.MagentaString,
+		formatIndicator: color.GreenString,
+	}
+	spinners := []termite.Spinner{
+		termite.NewSpinner(m.NewRow(), "Running...", spinnerRefreshInterval, termite.DefaultSpinnerFormatter()),
+		termite.NewSpinner(m.NewRow(), "Running...", spinnerRefreshInterval, customFormatter1),
+		termite.NewSpinner(m.NewRow(), "Running...", spinnerRefreshInterval, customFormatter2),
+	}
+
+	for _, spinner := range spinners {
+		_, _ = spinner.Start()
+	}
+	time.Sleep(time.Second)
+	for _, spinner := range spinners {
 		spinner.SetTitle("Finishing...")
-		time.Sleep(time.Second * 1)
+	}
+	time.Sleep(time.Second)
+	for _, spinner := range spinners {
 		_ = spinner.Stop("- Done " + taskDoneMarkUniChar)
 	}
 
-	termite.Println("\r\n")
+	cancel()
+	termite.Println("")
 }
 
 func demoCursor(ctx *demoContext) {
@@ -211,4 +235,22 @@ func printTitle(s string, ctx *demoContext) {
 	termite.Println(fmt.Sprintf(" %s ", color.GreenString(strings.Title(s))))
 	termite.Println(border)
 	termite.Println("")
+}
+
+type CustomSpinnerFormatter struct {
+	charSeq         []string
+	formatTitle     func(format string, a ...interface{}) string
+	formatIndicator func(format string, a ...interface{}) string
+}
+
+func (f *CustomSpinnerFormatter) FormatTitle(s string) string {
+	return f.formatTitle(s)
+}
+
+func (f *CustomSpinnerFormatter) FormatIndicator(char string) string {
+	return f.formatIndicator(char)
+}
+
+func (f *CustomSpinnerFormatter) CharSeq() []string {
+	return f.charSeq
 }
