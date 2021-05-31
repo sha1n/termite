@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 
@@ -35,27 +37,38 @@ const splash = `
 
 `
 
-func main() {
-	t := termite.NewTerminal(true)
-	t.Println(splash)
-	demo(t)
+type demoContext struct {
+	out       io.Writer
+	termWidth int
 }
 
-func demo(t termite.Terminal) {
-	c := termite.NewCursor(t)
+func main() {
+	termWidth, _, _ := termite.GetTerminalDimensions()
+	writer := termite.NewAutoFlushingWriter(os.Stdout)
+
+	termite.Println(splash)
+
+	demo(&demoContext{
+		out:       writer,
+		termWidth: termWidth,
+	})
+}
+
+func demo(ctx *demoContext) {
+	c := termite.NewCursor(ctx.out)
 	c.Hide()
 	defer c.Show()
 
-	demoMatrix(t)
-	demoSpinner(t)
-	demoCursor(t)
-	demoConcurrentProgressBars(t)
+	demoMatrix(ctx)
+	demoSpinner(ctx)
+	demoCursor(ctx)
+	demoConcurrentProgressBars(ctx)
 }
 
-func demoMatrix(t termite.Terminal) {
-	printTitle("Matrix Layout", t)
+func demoMatrix(ctx *demoContext) {
+	printTitle("Matrix Layout", ctx)
 
-	m := termite.NewMatrix(t, progressRefreshInterval)
+	m := termite.NewMatrix(termite.StdoutWriter, progressRefreshInterval)
 	cancel := m.Start()
 
 	// allocating rows for 5 tasks and one space row
@@ -63,7 +76,13 @@ func demoMatrix(t termite.Terminal) {
 
 	// adding a progress bar row
 	progressRow := m.NewRow()
-	pb := termite.NewProgressBar(progressRow, 5*len(progressPhases), t.Width(), t.Width()/8, '\u2587', '\u2587', '\u2587')
+	pb := termite.NewProgressBar(
+		progressRow,
+		5*len(progressPhases),
+		ctx.termWidth,
+		ctx.termWidth/8,
+		'\u2587', '\u2587', '\u2587',
+	)
 	tick, _, _ := pb.Start()
 
 	update := func(rowIndex int, status string) {
@@ -87,13 +106,13 @@ func demoMatrix(t termite.Terminal) {
 	}
 
 	cancel()
-	t.Println("")
+	termite.Println("")
 }
 
-func demoSpinner(t termite.Terminal) {
-	printTitle("Spinner progress indicator", t)
+func demoSpinner(ctx *demoContext) {
+	printTitle("Spinner progress indicator", ctx)
 
-	spinner := termite.NewSpinner(t, "Running...", spinnerRefreshInterval)
+	spinner := termite.NewSpinner(termite.StdoutWriter, "Running...", spinnerRefreshInterval)
 	if _, e := spinner.Start(); e == nil {
 		time.Sleep(time.Second * 1)
 		spinner.SetTitle("Finishing...")
@@ -101,48 +120,48 @@ func demoSpinner(t termite.Terminal) {
 		_ = spinner.Stop("- Done " + taskDoneMarkUniChar)
 	}
 
-	t.Println("\r\n")
+	termite.Println("\r\n")
 }
 
-func demoCursor(t termite.Terminal) {
-	printTitle("Cursor back tracking and line rewrites", t)
+func demoCursor(ctx *demoContext) {
+	printTitle("Cursor back tracking and line rewrites", ctx)
 
 	fmtTaskStatus := func(name, status string) string {
 		return fmt.Sprintf("- Task %s %s", name, status)
 	}
 
-	cursor := termite.NewCursor(t)
-	t.Println(fmtTaskStatus("A", "pending..."))
-	t.Println(fmtTaskStatus("B", "pending..."))
-	t.Println(fmtTaskStatus("C", "pending..."))
+	cursor := termite.NewCursor(termite.StdoutWriter)
+	termite.Println(fmtTaskStatus("A", "pending..."))
+	termite.Println(fmtTaskStatus("B", "pending..."))
+	termite.Println(fmtTaskStatus("C", "pending..."))
 
 	time.Sleep(time.Second * 1)
 	cursor.Up(3)
-	t.Print(termite.TermControlEraseLine + fmtTaskStatus("A", taskDoneMarkUniChar))
+	termite.Print(termite.TermControlEraseLine + fmtTaskStatus("A", taskDoneMarkUniChar))
 	cursor.Down(3)
 
 	time.Sleep(time.Millisecond * 50)
 	cursor.Up(1)
-	t.Print(termite.TermControlEraseLine + fmtTaskStatus("C", taskDoneMarkUniChar))
+	termite.Print(termite.TermControlEraseLine + fmtTaskStatus("C", taskDoneMarkUniChar))
 	cursor.Down(1)
 
 	time.Sleep(time.Millisecond * 50)
 	cursor.Up(2)
-	t.Print(termite.TermControlEraseLine + fmtTaskStatus("B", taskFailMarkUniChar))
+	termite.Print(termite.TermControlEraseLine + fmtTaskStatus("B", taskFailMarkUniChar))
 	cursor.Down(2)
 
 	time.Sleep(time.Millisecond * 50)
 
-	t.Println("")
+	termite.Println("")
 }
 
-func demoConcurrentProgressBars(t termite.Terminal) {
-	printTitle("Concurrent tasks progress", t)
+func demoConcurrentProgressBars(ctx *demoContext) {
+	printTitle("Concurrent tasks progress", ctx)
 
-	cursor := termite.NewCursor(t)
+	cursor := termite.NewCursor(termite.StdoutWriter)
 	ticks := 20
 	progressTickerWith := func(width int, fill rune) (func(), context.CancelFunc) {
-		bar := termite.NewProgressBar(t, ticks, width, t.Width(), fill, fill, fill)
+		bar := termite.NewProgressBar(termite.StdoutWriter, ticks, width, ctx.termWidth, fill, fill, fill)
 		tick, cancel, _ := bar.Start()
 
 		return func() {
@@ -154,11 +173,12 @@ func demoConcurrentProgressBars(t termite.Terminal) {
 	var cancel1, cancel2, cancel3, cancel4 context.CancelFunc
 	var tick1, tick2, tick3, tick4 func()
 
-	t.AllocateNewLines(4) // allocate 4 lines
-	tick1, cancel1 = progressTickerWith(t.Width()*1/8, '\u258C')
-	tick2, cancel2 = progressTickerWith(t.Width()*1/4, '\u2592')
-	tick3, cancel3 = progressTickerWith(t.Width()*3/8, '\u2591')
-	tick4, cancel4 = progressTickerWith(t.Width()*1/2, '\u2587')
+	termWidth := ctx.termWidth
+	termite.AllocateNewLines(4) // allocate 4 lines
+	tick1, cancel1 = progressTickerWith(termWidth*1/8, '\u258C')
+	tick2, cancel2 = progressTickerWith(termWidth*1/4, '\u2592')
+	tick3, cancel3 = progressTickerWith(termWidth*3/8, '\u2591')
+	tick4, cancel4 = progressTickerWith(termWidth*1/2, '\u2587')
 
 	defer func() {
 		cancel1()
@@ -181,14 +201,14 @@ func demoConcurrentProgressBars(t termite.Terminal) {
 	cursor.Down(4)
 	cursor.Show()
 
-	t.Println("\n")
+	termite.Println("\n")
 }
 
-func printTitle(s string, t termite.Terminal) {
+func printTitle(s string, ctx *demoContext) {
 	chars := len(s)
 	border := strings.Repeat("-", chars+2)
-	t.Println(border)
-	t.Println(fmt.Sprintf(" %s ", color.GreenString(strings.Title(s))))
-	t.Println(border)
-	t.Println("")
+	termite.Println(border)
+	termite.Println(fmt.Sprintf(" %s ", color.GreenString(strings.Title(s))))
+	termite.Println(border)
+	termite.Println("")
 }

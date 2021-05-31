@@ -128,7 +128,7 @@ func TestMatrixGetRowByIdWithIllegalValue(t *testing.T) {
 func assertEventualSequence(t *testing.T, matrix Matrix, examples []string) {
 	contantsAllExamplesInOrderFn := func() bool {
 		return strings.Contains(
-			matrix.(*matrixImpl).writer.(*FakeTerminal).Out.String(),
+			matrix.(*matrixImpl).writer.(*bytes.Buffer).String(),
 			expectedOutputSequenceFor(examples),
 		)
 	}
@@ -150,8 +150,8 @@ func expectedOutputSequenceFor(examples []string) string {
 }
 
 func startNewMatrix() (Matrix, context.CancelFunc) {
-	term := NewFakeTerminal(80, 80)
-	matrix := NewMatrix(term, time.Millisecond)
+	emulatedOutput := new(bytes.Buffer)
+	matrix := NewMatrix(emulatedOutput, time.Millisecond)
 	cancel := matrix.Start()
 
 	return matrix, cancel
