@@ -45,5 +45,5 @@ func (sw *AutoFlushingWriter) Write(b []byte) (int, error) {
 
 // WriteString uses io.WriteString to write the specified string to the underlying writer.
 func (sw *AutoFlushingWriter) WriteString(s string) (int, error) {
-	return io.WriteString(sw.writer, s)
+	return sw.Write([]byte(s))
 }
