@@ -1,22 +1,16 @@
 package termite
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"strings"
-	"sync"
 
 	"github.com/mattn/go-isatty"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
 func init() {
-	StdoutWriter = newSyncWriter(os.Stdout, true)
-	StderrWriter = newSyncWriter(os.Stderr, true)
-	StdinReader = os.Stdin
-
 	Tty = isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
 
 	if Tty {
@@ -33,15 +27,6 @@ var (
 	terminalWidth  int
 	terminalHeight int
 
-	// StdoutWriter to be used as standard out
-	StdoutWriter io.Writer
-
-	// StderrWriter to be used as standard err
-	StderrWriter io.Writer
-
-	// StdinReader to be used as standard in
-	StdinReader io.Reader
-
 	// Tty whether or not we have a terminal
 	Tty bool
 )
@@ -56,31 +41,6 @@ const (
 	// TermControlCRLF line feed
 	TermControlCRLF = "\r\n"
 )
-
-type syncWriter struct {
-	writer    *bufio.Writer
-	outLock   *sync.Mutex
-	autoFlush bool
-}
-
-func newSyncWriter(w io.Writer, autoFlush bool) io.Writer {
-	return &syncWriter{
-		writer:    bufio.NewWriter(os.Stdout),
-		autoFlush: autoFlush,
-		outLock:   &sync.Mutex{},
-	}
-}
-
-func (sw *syncWriter) Write(b []byte) (int, error) {
-	sw.outLock.Lock()
-	defer sw.outLock.Unlock()
-
-	if sw.autoFlush {
-		defer sw.writer.Flush()
-	}
-
-	return sw.writer.Write(b)
-}
 
 // Terminal privides terminal related APIs
 type Terminal interface {
