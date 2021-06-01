@@ -28,9 +28,8 @@ go get github.com/sha1n/termite
 ## Examples
 ### Spinner
 ```go
-terminal := termite.NewTerminal(true)
 refreshInterval := time.Millisecond * 100
-spinner := termite.NewSpinner(terminal, "Processing...", refreshInterval)
+spinner := termite.NewSpinner(termite.StdoutWriter, "Processing...", refreshInterval, termite.DefaultSpinnerFormatter())
 
 if _, e := spinner.Start(); e == nil {
   doWork()
@@ -41,8 +40,8 @@ if _, e := spinner.Start(); e == nil {
 
 ### Progress Bar
 ```go
-terminal := termite.NewTerminal(true)
-progressBar := termite.NewDefaultProgressBar(terminal, workItems)
+termWidth, _, _ := termite.GetTerminalDimensions()
+progressBar := termite.NewProgressBar(termite.StdoutWriter, tickCount, width, termWidth, termite.DefaultProgressBarFormatter())
 
 if tick, cancel, err := progressBar.Start(); err == nil {
   defer cancel()
