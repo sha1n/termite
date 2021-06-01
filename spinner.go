@@ -10,30 +10,44 @@ import (
 	"time"
 )
 
+// DefaultSpinnerCharSeq returns the default character sequence of a spinner.
 func DefaultSpinnerCharSeq() []string {
 	return []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 }
 
+// DefaultSpinnerFormatter returns a default
 func DefaultSpinnerFormatter() SpinnerFormatter {
 	return &SimpleSpinnerFormatter{}
 }
 
+// SpinnerFormatter a formatter to be used with a Spinner to customize its style.
 type SpinnerFormatter interface {
+	// FormatTitle returns the input string with optional styling codes or anything else.
 	FormatTitle(s string) string
+
+	// FormatIndicator returns a string that contains one visible character - the one passed as input -
+	// and optionally additional styling charatcers such as color codes, background and other effects.
 	FormatIndicator(char string) string
+
+	// CharSeq the character sequence to use as indicators.
 	CharSeq() []string
 }
 
+// SimpleSpinnerFormatter a simple spinner formatter implementation that uses the default
+// spinner character sequence and passes the title and the indicator setrings unchanged.
 type SimpleSpinnerFormatter struct{}
 
+// FormatTitle returns the input title as is
 func (f *SimpleSpinnerFormatter) FormatTitle(s string) string {
 	return s
 }
 
+// FormatIndicator returns the input char as is
 func (f *SimpleSpinnerFormatter) FormatIndicator(char string) string {
 	return char
 }
 
+// CharSeq returns the default character sequence.
 func (f *SimpleSpinnerFormatter) CharSeq() []string {
 	return DefaultSpinnerCharSeq()
 }
