@@ -10,41 +10,60 @@ import (
 )
 
 const (
-	DefaultProgressBarLeftBorder  = '\u258F'
+	// DefaultProgressBarLeftBorder default progress bar left border character
+	DefaultProgressBarLeftBorder = '\u258F'
+
+	// DefaultProgressBarRightBorder default progress bar right border character
 	DefaultProgressBarRightBorder = '\u2595'
-	DefaultProgressBarFill        = '\u2587'
+
+	// DefaultProgressBarFill default progress bar fill character
+	DefaultProgressBarFill = '\u2587'
 )
 
-func DefaultProgressBarFormatter() ProgressBarFormatter {
+// DefaultProgressBarFormatter returns a new instance of the default ProgressBarFormatter
+func DefaultProgressBarFormatter() *SimpleProgressBarFormatter {
 	return &SimpleProgressBarFormatter{
-		LeftBorder:  DefaultProgressBarLeftBorder,
-		RightBorder: DefaultProgressBarRightBorder,
-		Fill:        DefaultProgressBarFill,
+		LeftBorderChar:  DefaultProgressBarLeftBorder,
+		RightBorderChar: DefaultProgressBarRightBorder,
+		FillChar:        DefaultProgressBarFill,
 	}
 }
 
+// ProgressBarFormatter a formatter to control the style of a ProgressBar.
 type ProgressBarFormatter interface {
+	// FormatLeftBorder returns a string that contains one visible character and optionally
+	// additional styling charatcers such as color codes, background and other effects.
 	FormatLeftBorder() string
+
+	// FormatRightBorder returns a string that contains one visible character and optionally
+	// additional styling charatcers such as color codes, background and other effects.
 	FormatRightBorder() string
+
+	// FormatFill returns a string that contains one visible character and optionally
+	// additional styling charatcers such as color codes, background and other effects.
 	FormatFill() string
 }
 
+// SimpleProgressBarFormatter a simple ProgressBarFormatter implementation which is based on constructor values.
 type SimpleProgressBarFormatter struct {
-	LeftBorder  rune
-	RightBorder rune
-	Fill        rune
+	LeftBorderChar  rune
+	RightBorderChar rune
+	FillChar        rune
 }
 
+// FormatLeftBorder returns the left border char
 func (f *SimpleProgressBarFormatter) FormatLeftBorder() string {
-	return fmt.Sprintf("%c", f.LeftBorder)
+	return fmt.Sprintf("%c", f.LeftBorderChar)
 }
 
+// FormatRightBorder returns the right border char
 func (f *SimpleProgressBarFormatter) FormatRightBorder() string {
-	return fmt.Sprintf("%c", f.RightBorder)
+	return fmt.Sprintf("%c", f.RightBorderChar)
 }
 
+// FormatFill returns the fill char
 func (f *SimpleProgressBarFormatter) FormatFill() string {
-	return fmt.Sprintf("%c", f.Fill)
+	return fmt.Sprintf("%c", f.FillChar)
 }
 
 // TickFn a tick handle

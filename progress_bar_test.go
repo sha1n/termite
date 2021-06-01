@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	fakeTerminalWidth  = 100
+	fakeTerminalWidth = 100
 )
 
 func TestFullWidthProgressBar(t *testing.T) {

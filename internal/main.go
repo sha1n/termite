@@ -115,12 +115,12 @@ func demoSpinner(ctx *demoContext) {
 	m := termite.NewMatrix(termite.StdoutWriter, progressRefreshInterval)
 	cancel := m.Start()
 
-	customFormatter1 := &CustomSpinnerFormatter{
+	customFormatter1 := &customSpinnerFormatter{
 		charSeq:           []string{"\u2588", "\u2587", "\u2586", "\u2585", "\u2584", "\u2583", "\u2582", "\u2581"},
 		formatTitleFn:     color.CyanString,
 		formatIndicatorFn: color.RedString,
 	}
-	customFormatter2 := &CustomSpinnerFormatter{
+	customFormatter2 := &customSpinnerFormatter{
 		charSeq:           []string{"/", "-", "\\", "|"},
 		formatTitleFn:     color.MagentaString,
 		formatIndicatorFn: color.GreenString,
@@ -199,10 +199,10 @@ func demoConcurrentProgressBars(ctx *demoContext) {
 
 	termWidth := ctx.termWidth
 	termite.AllocateNewLines(4) // allocate 4 lines
-	tick1, cancel1 = progressTickerWith(termWidth*1/8, &CustomProgressBarFormatter{Fill: '\u258C', formatBorderFn: color.WhiteString, formatFillFn: color.HiCyanString})
-	tick2, cancel2 = progressTickerWith(termWidth*1/4, &CustomProgressBarFormatter{Fill: '\u2592', formatBorderFn: color.YellowString, formatFillFn: color.BlueString})
-	tick3, cancel3 = progressTickerWith(termWidth*3/8, &CustomProgressBarFormatter{Fill: '\u2591', formatBorderFn: color.GreenString, formatFillFn: color.RedString})
-	tick4, cancel4 = progressTickerWith(termWidth*1/2, &CustomProgressBarFormatter{Fill: '\u2587', formatBorderFn: color.RedString, formatFillFn: color.GreenString})
+	tick1, cancel1 = progressTickerWith(termWidth*1/8, &customProgressBarFormatter{Fill: '\u258C', formatBorderFn: color.WhiteString, formatFillFn: color.HiCyanString})
+	tick2, cancel2 = progressTickerWith(termWidth*1/4, &customProgressBarFormatter{Fill: '\u2592', formatBorderFn: color.YellowString, formatFillFn: color.BlueString})
+	tick3, cancel3 = progressTickerWith(termWidth*3/8, &customProgressBarFormatter{Fill: '\u2591', formatBorderFn: color.GreenString, formatFillFn: color.RedString})
+	tick4, cancel4 = progressTickerWith(termWidth*1/2, &customProgressBarFormatter{Fill: '\u2587', formatBorderFn: color.RedString, formatFillFn: color.GreenString})
 
 	defer func() {
 		cancel1()
@@ -237,38 +237,38 @@ func printTitle(s string, ctx *demoContext) {
 	termite.Println("")
 }
 
-type CustomSpinnerFormatter struct {
+type customSpinnerFormatter struct {
 	charSeq           []string
 	formatTitleFn     func(format string, a ...interface{}) string
 	formatIndicatorFn func(format string, a ...interface{}) string
 }
 
-func (f *CustomSpinnerFormatter) FormatTitle(s string) string {
+func (f *customSpinnerFormatter) FormatTitle(s string) string {
 	return f.formatTitleFn(s)
 }
 
-func (f *CustomSpinnerFormatter) FormatIndicator(char string) string {
+func (f *customSpinnerFormatter) FormatIndicator(char string) string {
 	return f.formatIndicatorFn(char)
 }
 
-func (f *CustomSpinnerFormatter) CharSeq() []string {
+func (f *customSpinnerFormatter) CharSeq() []string {
 	return f.charSeq
 }
 
-type CustomProgressBarFormatter struct {
+type customProgressBarFormatter struct {
 	Fill           rune
 	formatBorderFn func(format string, a ...interface{}) string
 	formatFillFn   func(format string, a ...interface{}) string
 }
 
-func (f *CustomProgressBarFormatter) FormatLeftBorder() string {
+func (f *customProgressBarFormatter) FormatLeftBorder() string {
 	return f.formatBorderFn(fmt.Sprintf("%c", termite.DefaultProgressBarLeftBorder))
 }
 
-func (f *CustomProgressBarFormatter) FormatRightBorder() string {
+func (f *customProgressBarFormatter) FormatRightBorder() string {
 	return f.formatBorderFn(fmt.Sprintf("%c", termite.DefaultProgressBarLeftBorder))
 }
 
-func (f *CustomProgressBarFormatter) FormatFill() string {
+func (f *customProgressBarFormatter) FormatFill() string {
 	return f.formatFillFn(fmt.Sprintf("%c", f.Fill))
 }
