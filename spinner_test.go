@@ -54,7 +54,7 @@ func TestSpinnerStopAlreadyStopped(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
 	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
-	spin.Start()
+	_, _ = spin.Start()
 	err := spin.Stop("")
 	assert.NoError(t, err)
 
@@ -66,8 +66,10 @@ func TestSpinnerStopMessage(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
 	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
-	spin.Start()
-	err := spin.Stop(expectedStopMessage)
+	_, err := spin.Start()
+	assert.NoError(t, err)
+
+	err = spin.Stop(expectedStopMessage)
 	assert.NoError(t, err)
 
 	assertBufferEventuallyContains(t, emulatedStdout, expectedStopMessage)
@@ -96,9 +98,23 @@ func TestSpinnerSetTitle(t *testing.T) {
 
 	assertBufferEventuallyContains(t, emulatedStdout, expectedInitialTitle)
 
-	spin.SetTitle(expectedUpdatedTitle)
+	assert.NoError(t, spin.SetTitle(expectedUpdatedTitle))
 
 	assertBufferEventuallyContains(t, emulatedStdout, expectedUpdatedTitle)
+}
+
+func TestSpinnerSetTitleOnStoppedSpinner(t *testing.T) {
+	expectedInitialTitle := generateRandomString()
+	expectedUpdatedTitle := generateRandomString()
+	emulatedStdout := new(bytes.Buffer)
+
+	spin := NewSpinner(emulatedStdout, expectedInitialTitle, interval, DefaultSpinnerFormatter())
+	_, _ = spin.Start()
+
+	assertBufferEventuallyContains(t, emulatedStdout, expectedInitialTitle)
+
+	assert.NoError(t, spin.Stop(""))
+	assert.Error(t, spin.SetTitle(expectedUpdatedTitle))
 }
 
 func assertBufferEventuallyContains(t *testing.T, outBuffer *bytes.Buffer, expected string) {
@@ -134,45 +150,35 @@ func assertStoppedEventually(t *testing.T, outBuffer *bytes.Buffer, spinner *spi
 	)
 }
 
-// TODO can this be simplified?
 func assertSpinnerCharSequence(t *testing.T, outBuffer *bytes.Buffer) {
 	charSeq := DefaultSpinnerCharSeq()
-	readChars := make([]string, len(charSeq))
-	readCharsCount := 0
+	readChars := []string{}
 
-	readSequence := func() string {
-		startTime := time.Now()
+	scan := func() {
 		for {
-			s, _ := outBuffer.ReadString(TermControlEraseLine[len(TermControlEraseLine)-1]) // read everything you got
-			if strippedString := strings.Trim(s, TermControlEraseLine+"\x00"); strippedString != "" {
-				return strippedString
+			r, _, e := outBuffer.ReadRune()
+			print(string(r), ",")
+			if e != nil {
+				continue
 			}
+			readChar := string(r)
+			if len(readChars) == 0 && readChar == charSeq[0] {
+				readChars = append(readChars, readChar)
+			} else if len(readChars) > 0 {
+				for _, ch := range charSeq {
+					if ch == readChar {
+						readChars = append(readChars, ch)
+					}
 
-			// guard again infinite loop
-			if time.Now().After(startTime.Add(time.Second * 30)) {
-				return ""
+					if len(readChars) == len(charSeq) {
+						return
+					}
+				}
 			}
 		}
 	}
 
-	// find the first character in the spinner sequence, so we can validate order properly
-	for {
-		strippedString := readSequence()
-		if strippedString != "" && strippedString == charSeq[0] {
-			readChars[0] = strippedString
-			break
-		}
-		// guard against infinite loop caused by bugs
-		readCharsCount++
-		if readCharsCount > len(charSeq)*2 {
-			assert.Fail(t, "something went wrong...")
-		}
-	}
-
-	for i := 1; i < len(charSeq); i++ {
-		readChars[i] = readSequence()
-	}
+	scan()
 
 	assert.Equal(t, charSeq, readChars)
-
 }
