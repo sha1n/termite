@@ -86,7 +86,7 @@ func NewSpinner(writer io.Writer, title string, interval time.Duration, formatte
 
 // NewDefaultSpinner creates a new Spinner that writes to Stdout with a default update interval
 func NewDefaultSpinner() Spinner {
-	return NewSpinner(StdoutWriter, "", 500, DefaultSpinnerFormatter())
+	return NewSpinner(StdoutWriter, "", time.Millisecond*100, DefaultSpinnerFormatter())
 }
 
 func (s *spinner) writeString(str string) (n int, err error) {
