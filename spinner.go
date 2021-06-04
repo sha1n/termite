@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"time"
 )
@@ -56,16 +57,16 @@ func (f *SimpleSpinnerFormatter) CharSeq() []string {
 type Spinner interface {
 	Start() (context.CancelFunc, error)
 	Stop(string) error
-	SetTitle(title string)
+	SetTitle(title string) error
 }
 
 type spinner struct {
 	writer    io.Writer
 	interval  time.Duration
-	mx        *sync.RWMutex
-	titleMx   *sync.RWMutex
+	stateMx   *sync.RWMutex
 	active    bool
 	stopC     chan bool
+	titleC    chan string
 	title     string
 	formatter SpinnerFormatter
 }
@@ -75,10 +76,10 @@ func NewSpinner(writer io.Writer, title string, interval time.Duration, formatte
 	return &spinner{
 		writer:    writer,
 		interval:  interval,
-		mx:        &sync.RWMutex{},
-		titleMx:   &sync.RWMutex{},
+		stateMx:   &sync.RWMutex{},
 		active:    false,
 		stopC:     make(chan bool),
+		titleC:    make(chan string),
 		title:     title,
 		formatter: formatter,
 	}
@@ -95,8 +96,8 @@ func (s *spinner) writeString(str string) (n int, err error) {
 
 // Start starts the spinner in the background and returns a cancellation handle and an error in case the spinner is already running.
 func (s *spinner) Start() (cancel context.CancelFunc, err error) {
-	s.mx.Lock()
-	defer s.mx.Unlock()
+	s.stateMx.Lock()
+	defer s.stateMx.Unlock()
 
 	if s.active {
 		return nil, errors.New("spinner already active")
@@ -115,27 +116,39 @@ func (s *spinner) Start() (cancel context.CancelFunc, err error) {
 
 		defer s.setActiveSafe(false)
 
+		update := func(title string) {
+			indicatorValue := s.formatter.FormatIndicator(fmt.Sprintf("%v", spinring.Value))
+			if title != "" {
+				_, _ = s.writeString(fmt.Sprintf("%s%s %s", TermControlEraseLine, indicatorValue, s.formatter.FormatTitle(title)))
+			} else {
+				_, _ = s.writeString(fmt.Sprintf("%s%s", TermControlEraseLine, indicatorValue))
+			}
+		}
+
 		for {
 			select {
 			case <-context.Done():
 				timer.Stop()
+				close(s.titleC)
+
 				s.printExitMessage("Cancelled...")
+
 				return
 
 			case <-s.stopC:
 				timer.Stop()
+				close(s.titleC)
 				return
+
+			case title := <-s.titleC:
+				// The title is only written by this routine, so we're safe.
+				s.title = title
+				update(title)
 
 			case <-timer.C:
 				spinring = spinring.Next()
-				title := s.getTitle()
-				indicatorValue := s.formatter.FormatIndicator(fmt.Sprintf("%v", spinring.Value))
-				if title != "" {
-					s.writeString(fmt.Sprintf("%s%s %s", TermControlEraseLine, indicatorValue, s.formatter.FormatTitle(title)))
-				} else {
-					s.writeString(fmt.Sprintf("%s%s", TermControlEraseLine, indicatorValue))
-				}
-
+				title := s.title
+				update(title)
 			}
 		}
 	}()
@@ -147,8 +160,8 @@ func (s *spinner) Start() (cancel context.CancelFunc, err error) {
 
 // Stop stops the spinner and displays the specified message
 func (s *spinner) Stop(message string) (err error) {
-	s.mx.Lock()
-	defer s.mx.Unlock()
+	s.stateMx.Lock()
+	defer s.stateMx.Unlock()
 
 	if !s.active {
 		err = errors.New("spinner not active")
@@ -162,23 +175,21 @@ func (s *spinner) Stop(message string) (err error) {
 }
 
 // SetTitle updates the spinner text.
-func (s *spinner) SetTitle(title string) {
-	s.titleMx.Lock()
-	defer s.titleMx.Unlock()
+func (s *spinner) SetTitle(title string) (err error) {
+	defer func() {
+		if recover() != nil {
+			err = errors.New("spinner not active")
+		}
+	}()
 
-	s.title = title
-}
+	s.titleC <- strings.TrimSpace(title)
 
-func (s *spinner) getTitle() string {
-	s.titleMx.RLock()
-	defer s.titleMx.RUnlock()
-
-	return s.title
+	return err
 }
 
 func (s *spinner) printExitMessage(message string) {
-	s.writeString(TermControlEraseLine)
-	s.writeString(message)
+	_, _ = s.writeString(TermControlEraseLine)
+	_, _ = s.writeString(message)
 }
 
 func (s *spinner) createSpinnerRing() *ring.Ring {
@@ -193,15 +204,15 @@ func (s *spinner) createSpinnerRing() *ring.Ring {
 }
 
 func (s *spinner) isActiveSafe() bool {
-	s.mx.RLock()
-	defer s.mx.RUnlock()
+	s.stateMx.RLock()
+	defer s.stateMx.RUnlock()
 
 	return s.active
 }
 
 func (s *spinner) setActiveSafe(active bool) {
-	s.mx.Lock()
-	defer s.mx.Unlock()
+	s.stateMx.Lock()
+	defer s.stateMx.Unlock()
 
 	s.active = active
 }
