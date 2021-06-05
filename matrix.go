@@ -56,21 +56,23 @@ type MatrixRow interface {
 }
 
 type matrixImpl struct {
-	lines           []string
+	rows            []*matrixRow
 	refreshInterval time.Duration
 	writer          io.Writer
 	mx              *sync.RWMutex
 }
 
 type matrixRow struct {
-	id     MatrixCellID
-	matrix *matrixImpl
+	id       MatrixCellID
+	matrix   *matrixImpl
+	value    string
+	modified bool
 }
 
 // NewMatrix creates a new matrix that writes to the specified writer and refreshes every refreshInterval.
 func NewMatrix(writer io.Writer, refreshInterval time.Duration) Matrix {
 	return &matrixImpl{
-		lines:           []string{},
+		rows:            []*matrixRow{},
 		refreshInterval: refreshInterval,
 		writer:          writer,
 		mx:              &sync.RWMutex{},
@@ -127,14 +129,11 @@ func (m *matrixImpl) GetRow(index int) (row MatrixRow, err error) {
 	if index < 0 {
 		return nil, errors.New("row index cannot be negative")
 	}
-	if index >= len(m.lines) {
+	if index >= len(m.rows) {
 		return nil, errors.New("row index exceeds the matrix range")
 	}
 
-	row = &matrixRow{
-		id:     MatrixCellID{row: index},
-		matrix: m,
-	}
+	row = m.rows[index]
 
 	return row, err
 }
@@ -148,16 +147,21 @@ func (m *matrixImpl) updateTerminal(resetCursorPosition bool) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	if len(m.lines) == 0 {
+	if len(m.rows) == 0 {
 		return
 	}
 
-	for _, line := range m.lines {
-		io.WriteString(m.writer, fmt.Sprintf("%s%s\r\n", TermControlEraseLine, line))
+	for _, row := range m.rows {
+		if row.modified {
+			_, err := io.WriteString(m.writer, fmt.Sprintf("%s%s\n", TermControlEraseLine, row.value))
+			row.modified = err != nil
+		} else {
+			io.WriteString(m.writer, "\n")
+		}
 	}
 
 	if resetCursorPosition {
-		c.Up(len(m.lines))
+		c.Up(len(m.rows))
 	}
 }
 
@@ -189,12 +193,14 @@ func (m *matrixImpl) NewRow() MatrixRow {
 }
 
 func (m *matrixImpl) newRow() MatrixRow {
-	index := len(m.lines)
-	m.lines = append(m.lines, "")
-	return &matrixRow{
+	index := len(m.rows)
+	row := &matrixRow{
 		id:     MatrixCellID{row: index},
 		matrix: m,
 	}
+	m.rows = append(m.rows, row)
+
+	return row
 }
 
 func (r *matrixRow) WriteString(s string) (n int, err error) {
@@ -205,8 +211,11 @@ func (r *matrixRow) Write(b []byte) (n int, err error) {
 	r.matrix.mx.Lock()
 	defer r.matrix.mx.Unlock()
 
-	// we trim line feeds and return characters to prevent breaking the matrix layout
-	r.matrix.lines[r.id.row] = strings.Trim(string(b), "\n\r")
+	row := r.matrix.rows[r.id.row]
+	newValue := strings.Trim(string(b), "\n\r")
+	row.modified = newValue != row.value
+	row.value = newValue
+
 	return len(b), nil
 }
 
