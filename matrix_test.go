@@ -22,7 +22,7 @@ func TestMatrixWritesToTerminalOutput(t *testing.T) {
 	matrix.NewLineWriter().Write([]byte(examples[1]))
 	matrix.NewLineStringWriter().WriteString(examples[2])
 
-	assertEventualSequence(t, matrix, examples)
+	assertEventualSequence(t, matrix, expectedRewriteSequenceFor(examples))
 }
 
 func TestMatrixUpdatesTerminalOutput(t *testing.T) {
@@ -38,7 +38,7 @@ func TestMatrixUpdatesTerminalOutput(t *testing.T) {
 	matrix.NewRow().Update(examples[2])
 	row2.WriteString(examples[1])
 
-	assertEventualSequence(t, matrix, examples)
+	assertEventualSequence(t, matrix, expectedRewriteSequenceFor(examples))
 }
 
 func TestMatrixRowUpdateTrimsLineFeeds(t *testing.T) {
@@ -47,9 +47,18 @@ func TestMatrixRowUpdateTrimsLineFeeds(t *testing.T) {
 	matrix, cancel := startNewMatrix()
 	defer cancel()
 
-	matrix.NewRow().Update("\r\n" + expected + "\r\n\r\n\r")
+	matrix.NewRow().Update("\n" + expected + "\n\n\r")
 
-	assertEventualSequence(t, matrix, []string{expected})
+	assertEventualSequence(t, matrix, expectedRewriteSequenceFor([]string{expected}))
+}
+
+func TestNoRewritesWhenNothingChanges(t *testing.T) {
+	matrix, cancel := startNewMatrix()
+	defer cancel()
+
+	matrix.NewRange(4)
+
+	assertEventualSequence(t, matrix, expectedSkipRewriteSequenceFor(4))
 }
 
 func TestMatrixStructure(t *testing.T) {
@@ -62,7 +71,7 @@ func TestMatrixStructure(t *testing.T) {
 	matrix.NewRow().Update(examples[1])
 	matrix.NewRow().Update(examples[2])
 
-	assert.Equal(t, examples, matrix.(*matrixImpl).lines)
+	assert.Equal(t, examples, linesOf(matrix))
 }
 
 func TestMatrixNewRangeOrder(t *testing.T) {
@@ -76,7 +85,7 @@ func TestMatrixNewRangeOrder(t *testing.T) {
 		rows[i].Update(examples[i])
 	}
 
-	assert.Equal(t, examples, matrix.(*matrixImpl).lines)
+	assert.Equal(t, examples, linesOf(matrix))
 }
 
 func TestWriterLineInterface(t *testing.T) {
@@ -91,7 +100,7 @@ func TestWriterLineInterface(t *testing.T) {
 	matrix1.NewLineStringWriter().WriteString(example)
 	matrix2.NewLineWriter().Write([]byte(example))
 
-	assert.Equal(t, matrix1.(*matrixImpl).lines, matrix2.(*matrixImpl).lines)
+	assert.Equal(t, matrix1.(*matrixImpl).rows, matrix2.(*matrixImpl).rows)
 }
 
 func TestMatrixGetRowByID(t *testing.T) {
@@ -125,11 +134,11 @@ func TestMatrixGetRowByIdWithIllegalValue(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func assertEventualSequence(t *testing.T, matrix Matrix, examples []string) {
+func assertEventualSequence(t *testing.T, matrix Matrix, expected string) {
 	contantsAllExamplesInOrderFn := func() bool {
 		return strings.Contains(
 			matrix.(*matrixImpl).writer.(*bytes.Buffer).String(),
-			expectedOutputSequenceFor(examples),
+			expected,
 		)
 	}
 
@@ -138,12 +147,16 @@ func assertEventualSequence(t *testing.T, matrix Matrix, examples []string) {
 		time.Second*10,
 		matrix.RefreshInterval(),
 	)
-
 }
-func expectedOutputSequenceFor(examples []string) string {
+
+func expectedSkipRewriteSequenceFor(count int) string {
+	return strings.Repeat("\n", count)
+}
+
+func expectedRewriteSequenceFor(examples []string) string {
 	buf := new(bytes.Buffer)
 	for _, e := range examples {
-		buf.WriteString(TermControlEraseLine + e + "\r\n")
+		buf.WriteString(TermControlEraseLine + e + "\n")
 	}
 
 	return buf.String()
@@ -169,4 +182,14 @@ func generateMultiLineExamples(count int) []string {
 	}
 
 	return examples
+}
+
+func linesOf(m Matrix) []string {
+	rows := m.(*matrixImpl).rows
+	lines := make([]string, len(rows))
+	for i, row := range rows {
+		lines[i] = row.value
+	}
+
+	return lines
 }
