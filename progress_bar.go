@@ -128,27 +128,9 @@ func (b *bar) Tick() bool {
 	charsToFill := int(percent * float32(totalChars))
 	spaceChars := totalChars - charsToFill
 
-	io.WriteString(
-		b.writer,
-		fmt.Sprintf(
-			"%s%s%s%s%s %d%%\r",
-			TermControlEraseLine,
-			b.formatter.FormatLeftBorder(),
-			strings.Repeat(b.formatter.FormatFill(), charsToFill),
-			strings.Repeat(" ", spaceChars),
-			b.formatter.FormatRightBorder(),
-			int(percent*100),
-		),
-	)
+	b.render(spaceChars, charsToFill, percent)
 
 	return spaceChars > 0
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 // Start starts the progress bar in the background and returns a tick handle, a cancellation handle and an error in case
@@ -161,6 +143,7 @@ func (b *bar) Start() (tick TickFn, cancel context.CancelFunc, err error) {
 		return nil, nil, errors.New("Progress bar already running in the background")
 	}
 	b.active = true
+	b.render(b.maxTicks, 0, 0)
 
 	var ctx context.Context
 	ctx, cancel = context.WithCancel(context.Background())
@@ -198,4 +181,26 @@ func (b *bar) Start() (tick TickFn, cancel context.CancelFunc, err error) {
 	waitStart.Wait()
 
 	return tick, cancel, err
+}
+
+func (b *bar) render(spaces, characters int, percent float32) {
+	_, _ = io.WriteString(
+		b.writer,
+		fmt.Sprintf(
+			"%s%s%s%s%s %d%%\r",
+			TermControlEraseLine,
+			b.formatter.FormatLeftBorder(),
+			strings.Repeat(b.formatter.FormatFill(), characters),
+			strings.Repeat(" ", spaces),
+			b.formatter.FormatRightBorder(),
+			int(percent*100),
+		),
+	)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
