@@ -97,7 +97,7 @@ func NewProgressBar(writer io.Writer, maxTicks int, terminalWidth int, width int
 		maxTicks:  maxTicks,
 		ticks:     0,
 		writer:    writer,
-		width:     min(width, terminalWidth-7), // 7 = 2 borders, 3 digits, % sign + 1 padding char
+		width:     max(0, min(width, terminalWidth-7)), // 7 = 2 borders, 3 digits, % sign + 1 padding char
 		formatter: formatter,
 		mx:        &sync.RWMutex{},
 	}
@@ -195,11 +195,18 @@ func (b *bar) render() bool {
 		),
 	)
 
-	return spaceChars > 0
+	return b.maxTicks > b.ticks
 }
 
 func min(a, b int) int {
 	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
 		return a
 	}
 	return b
