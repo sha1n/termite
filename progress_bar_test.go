@@ -13,11 +13,15 @@ const (
 )
 
 func TestFullWidthProgressBar(t *testing.T) {
-	testProgressBarWith(t, fakeTerminalWidth, fakeTerminalWidth)
+	testProgressBarWith(t, fakeTerminalWidth, fakeTerminalWidth, fakeTerminalWidth)
 }
 
 func TestOversizedProgressBar(t *testing.T) {
-	testProgressBarWith(t, fakeTerminalWidth*2, fakeTerminalWidth/2+rand.Intn(fakeTerminalWidth*2))
+	testProgressBarWith(t, fakeTerminalWidth*2, fakeTerminalWidth*2, fakeTerminalWidth/2+rand.Intn(fakeTerminalWidth*2))
+}
+
+func TestZeroSizedTerminalProgressBar(t *testing.T) {
+	testProgressBarWith(t, 0, fakeTerminalWidth*2, fakeTerminalWidth/2+rand.Intn(fakeTerminalWidth*2))
 }
 
 func TestTickAnAlreadyDoneProgressBar(t *testing.T) {
@@ -70,9 +74,9 @@ func TestStartCancel(t *testing.T) {
 	assert.False(t, tick())
 }
 
-func testProgressBarWith(t *testing.T, width, maxTicks int) {
+func testProgressBarWith(t *testing.T, termWidth, width, maxTicks int) {
 	emulatedStdout := new(bytes.Buffer)
-	bar := NewProgressBar(emulatedStdout, maxTicks, width, width, DefaultProgressBarFormatter())
+	bar := NewProgressBar(emulatedStdout, maxTicks, termWidth, width, DefaultProgressBarFormatter())
 
 	var count = 0
 	for {
