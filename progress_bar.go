@@ -21,6 +21,8 @@ const (
 
 	// DefaultProgressBarBlank default progress bar fill character
 	DefaultProgressBarBlank = '\u2591'
+
+	percentAreaSpace = 7
 )
 
 // DefaultProgressBarFormatter returns a new instance of the default ProgressBarFormatter
@@ -30,6 +32,17 @@ func DefaultProgressBarFormatter() *SimpleProgressBarFormatter {
 		RightBorderChar: DefaultProgressBarRightBorder,
 		FillChar:        DefaultProgressBarFill,
 		BlankChar:       DefaultProgressBarBlank,
+	}
+}
+
+// DefaultProgressBarFormatterWidth returns a default formatter with custom message area width.
+func DefaultProgressBarFormatterWidth(width int) *SimpleProgressBarFormatter {
+	return &SimpleProgressBarFormatter{
+		LeftBorderChar:  DefaultProgressBarLeftBorder,
+		RightBorderChar: DefaultProgressBarRightBorder,
+		FillChar:        DefaultProgressBarFill,
+		BlankChar:       DefaultProgressBarBlank,
+		MessageWidth:    width,
 	}
 }
 
@@ -50,6 +63,9 @@ type ProgressBarFormatter interface {
 	// FormatBlank returns a string that contains one visible character and optionally
 	// additional styling charatcers such as color codes, background and other effects.
 	FormatBlank() string
+
+	// MessageAreaWidth return the number of character used for the message area.
+	MessageAreaWidth() int
 }
 
 // SimpleProgressBarFormatter a simple ProgressBarFormatter implementation which is based on constructor values.
@@ -58,6 +74,7 @@ type SimpleProgressBarFormatter struct {
 	RightBorderChar rune
 	FillChar        rune
 	BlankChar       rune
+	MessageWidth    int
 }
 
 // FormatLeftBorder returns the left border char
@@ -80,24 +97,36 @@ func (f *SimpleProgressBarFormatter) FormatBlank() string {
 	return fmt.Sprintf("%c", f.BlankChar)
 }
 
-// TickFn a tick handle
-type TickFn = func() bool
+// MessageAreaWidth returns zero
+func (f *SimpleProgressBarFormatter) MessageAreaWidth() int {
+	return f.MessageWidth
+}
+
+// TickMessageFn a tick handle
+type TickMessageFn = func(string) bool
 
 // ProgressBar a progress bar interface
 type ProgressBar interface {
 	Tick() bool
+	TickMessage(message string) bool
 	IsDone() bool
-	Start() (TickFn, context.CancelFunc, error)
+	Start() (TickMessageFn, context.CancelFunc, error)
 }
 
 type bar struct {
-	maxTicks  int
-	ticks     int
-	writer    io.Writer
-	width     int
-	formatter ProgressBarFormatter
-	active    bool
-	mx        *sync.RWMutex
+	maxTicks           int
+	ticks              int
+	writer             io.Writer
+	width              int
+	formatter          ProgressBarFormatter
+	renderStringFormat string
+	active             bool
+	mx                 *sync.RWMutex
+}
+
+type progressEvent struct {
+	ok  bool
+	msg string
 }
 
 // NewProgressBar creates a new progress bar
@@ -107,13 +136,15 @@ type bar struct {
 // width 					- bar width in characters
 // formatter 		  - a formatter for this progress bar
 func NewProgressBar(writer io.Writer, maxTicks int, terminalWidth int, width int, formatter ProgressBarFormatter) ProgressBar {
+	renderFormat := fmt.Sprintf("%%s%%%ds %%s%%s%%s%%s %%d%%%%", formatter.MessageAreaWidth())
 	return &bar{
-		maxTicks:  maxTicks,
-		ticks:     0,
-		writer:    writer,
-		width:     max(0, min(width, terminalWidth-7)), // 7 = 2 borders, 3 digits, % sign + 1 padding char
-		formatter: formatter,
-		mx:        &sync.RWMutex{},
+		maxTicks:           maxTicks,
+		ticks:              0,
+		writer:             writer,
+		width:              max(0, min(width, terminalWidth-percentAreaSpace-formatter.MessageAreaWidth())),
+		formatter:          formatter,
+		renderStringFormat: renderFormat,
+		mx:                 &sync.RWMutex{},
 	}
 }
 
@@ -131,18 +162,23 @@ func (b *bar) IsDone() bool {
 
 // Tick increments the progress by one tick. Does not imply visual change.
 func (b *bar) Tick() bool {
+	return b.TickMessage("")
+}
+
+// TickTickMessage increments the progress by one tick. Does not imply visual change.
+func (b *bar) TickMessage(message string) bool {
 	if b.IsDone() {
 		return false
 	}
 
 	b.ticks++
 
-	return b.render()
+	return b.render(message)
 }
 
 // Start starts the progress bar in the background and returns a tick handle, a cancellation handle and an error in case
 // this bar has already been started.
-func (b *bar) Start() (tick TickFn, cancel context.CancelFunc, err error) {
+func (b *bar) Start() (tick TickMessageFn, cancel context.CancelFunc, err error) {
 	defer b.mx.Unlock()
 	b.mx.Lock()
 
@@ -150,24 +186,25 @@ func (b *bar) Start() (tick TickFn, cancel context.CancelFunc, err error) {
 		return nil, nil, errors.New("Progress bar already running in the background")
 	}
 	b.active = true
-	b.render()
+	b.render("")
 
 	var ctx context.Context
 	ctx, cancel = context.WithCancel(context.Background())
 
-	events := make(chan bool)
+	events := make(chan progressEvent)
 	var done bool
 	waitStart := &sync.WaitGroup{}
 	waitStart.Add(1)
 
-	tick = func() bool {
+	tick = func(msg string) bool {
 		if ctx.Err() != nil {
 			return false
 		}
 
 		if !done {
-			events <- true
-			done = !<-events
+			events <- progressEvent{ok: true, msg: msg}
+			maybeDoneEvent := <-events
+			done = !maybeDoneEvent.ok
 		}
 		return !done
 	}
@@ -179,8 +216,9 @@ func (b *bar) Start() (tick TickFn, cancel context.CancelFunc, err error) {
 			case <-ctx.Done():
 				return
 
-			case <-events:
-				events <- b.Tick()
+			case evt := <-events:
+				evt.ok = b.TickMessage(evt.msg)
+				events <- evt
 			}
 		}
 	}()
@@ -190,7 +228,7 @@ func (b *bar) Start() (tick TickFn, cancel context.CancelFunc, err error) {
 	return tick, cancel, err
 }
 
-func (b *bar) render() bool {
+func (b *bar) render(message string) bool {
 	totalChars := b.width
 	percent := float32(b.ticks) / float32(b.maxTicks)
 	charsToFill := int(percent * float32(totalChars))
@@ -199,8 +237,9 @@ func (b *bar) render() bool {
 	_, _ = io.WriteString(
 		b.writer,
 		fmt.Sprintf(
-			"%s%s%s%s%s %d%%\r",
+			b.renderStringFormat,
 			TermControlEraseLine,
+			TruncateString(message, b.formatter.MessageAreaWidth()),
 			b.formatter.FormatLeftBorder(),
 			strings.Repeat(b.formatter.FormatFill(), charsToFill),
 			strings.Repeat(b.formatter.FormatBlank(), spaceChars),

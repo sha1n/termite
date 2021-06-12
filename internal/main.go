@@ -101,7 +101,7 @@ func demoMatrix(ctx *demoContext) {
 		rand.Shuffle(len(indexes), func(i, j int) { indexes[i], indexes[j] = indexes[j], indexes[i] })
 		for _, i := range indexes {
 			update(i, status)
-			tick()
+			tick("")
 		}
 	}
 
@@ -183,13 +183,15 @@ func demoConcurrentProgressBars(ctx *demoContext) {
 	printTitle("Concurrent tasks progress", ctx)
 
 	cursor := termite.NewCursor(termite.StdoutWriter)
-	ticks := 20
+	ticks := 200
 	progressTickerWith := func(width int, formatter termite.ProgressBarFormatter) (func(), context.CancelFunc) {
 		bar := termite.NewProgressBar(termite.StdoutWriter, ticks, width, ctx.termWidth, formatter)
 		tick, cancel, _ := bar.Start()
+		actualTicks := 0
 
 		return func() {
-			tick()
+			actualTicks++
+			tick(fmt.Sprintf("Running %d out of %d :", actualTicks, ticks))
 			cursor.Down(1)
 		}, cancel
 	}
@@ -199,7 +201,7 @@ func demoConcurrentProgressBars(ctx *demoContext) {
 
 	termWidth := ctx.termWidth
 	termite.AllocateNewLines(4) // allocate 4 lines
-	tick1, cancel1 = progressTickerWith(termWidth*1/8, &customProgressBarFormatter{Fill: '\u258C', formatBorderFn: color.WhiteString, formatFillFn: color.HiCyanString})
+	tick1, cancel1 = progressTickerWith(termWidth*3/16, &customProgressBarFormatter{Fill: '\u258C', formatBorderFn: color.WhiteString, formatFillFn: color.HiCyanString})
 	tick2, cancel2 = progressTickerWith(termWidth*1/4, &customProgressBarFormatter{Fill: '\u2592', formatBorderFn: color.YellowString, formatFillFn: color.BlueString})
 	tick3, cancel3 = progressTickerWith(termWidth*3/8, &customProgressBarFormatter{Fill: '\u2591', formatBorderFn: color.GreenString, formatFillFn: color.RedString})
 	tick4, cancel4 = progressTickerWith(termWidth*1/2, &customProgressBarFormatter{Fill: '\u2587', formatBorderFn: color.RedString, formatFillFn: color.GreenString})
@@ -217,7 +219,7 @@ func demoConcurrentProgressBars(ctx *demoContext) {
 		tick4()
 	}
 
-	for i := 0; i < 20; i++ {
+	for i := 0; i < ticks; i++ {
 		tick()
 		time.Sleep(time.Millisecond * 10)
 		cursor.Up(4)
@@ -275,4 +277,8 @@ func (f *customProgressBarFormatter) FormatFill() string {
 
 func (f *customProgressBarFormatter) FormatBlank() string {
 	return f.formatFillFn(fmt.Sprintf("%c", f.Fill))
+}
+
+func (f *customProgressBarFormatter) MessageAreaWidth() int {
+	return 25
 }
