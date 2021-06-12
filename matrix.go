@@ -39,6 +39,13 @@ type Matrix interface {
 
 	// GetRowByID looks up a row an ID. Returns an error if none exists
 	GetRowByID(MatrixCellID) (MatrixRow, error)
+
+	// UpdateTerminal updates the terminal immediately.
+	//
+	// This function can be used as a manual alternative to Start(), which updates the terminal
+	// in the background based on the interval specified in the constructor. Combining Start with
+	// manual updates can yield unwanted results though.
+	UpdateTerminal(resetCursorPosition bool)
 }
 
 // MatrixCellID used to identify a Matrix cell internally
@@ -103,12 +110,12 @@ func (m *matrixImpl) Start() context.CancelFunc {
 			select {
 			case <-context.Done():
 				timer.Stop()
-				m.updateTerminal(false)
+				m.UpdateTerminal(false)
 				drainWaitGroup.Done()
 				return
 
 			case <-timer.C:
-				m.updateTerminal(true)
+				m.UpdateTerminal(true)
 			}
 		}
 	}()
@@ -142,7 +149,7 @@ func (m *matrixImpl) GetRowByID(id MatrixCellID) (row MatrixRow, err error) {
 	return m.GetRow(id.row)
 }
 
-func (m *matrixImpl) updateTerminal(resetCursorPosition bool) {
+func (m *matrixImpl) UpdateTerminal(resetCursorPosition bool) {
 	c := NewCursor(m.writer)
 	m.mx.Lock()
 	defer m.mx.Unlock()
@@ -156,7 +163,7 @@ func (m *matrixImpl) updateTerminal(resetCursorPosition bool) {
 			_, err := io.WriteString(m.writer, fmt.Sprintf("%s%s\n", TermControlEraseLine, row.value))
 			row.modified = err != nil
 		} else {
-			io.WriteString(m.writer, "\n")
+			_, _ = io.WriteString(m.writer, "\n")
 		}
 	}
 
