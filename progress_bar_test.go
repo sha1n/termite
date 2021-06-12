@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/sha1n/clib/pkg/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,8 +45,8 @@ func TestStart(t *testing.T) {
 	assert.NotNil(t, tick)
 	assert.NotNil(t, cancel)
 
-	assert.True(t, tick())
-	assert.False(t, tick())
+	assert.True(t, tick(test.RandomString()))
+	assert.False(t, tick(test.RandomString()))
 }
 
 func TestStartWithAlreadyStartedBar(t *testing.T) {
@@ -69,9 +70,29 @@ func TestStartCancel(t *testing.T) {
 	assert.NotNil(t, tick)
 	assert.NotNil(t, cancel)
 
-	assert.True(t, tick())
+	assert.True(t, tick(test.RandomString()))
 	cancel()
-	assert.False(t, tick())
+	assert.False(t, tick(test.RandomString()))
+}
+
+func TestTickMessageNotDisplayedIfWidthIsZero(t *testing.T) {
+	emulatedStdout := new(bytes.Buffer)
+	bar := NewDefaultProgressBar(emulatedStdout, fakeTerminalWidth, 2)
+
+	aRandomMessage := test.RandomString()
+
+	assert.True(t, bar.TickMessage(aRandomMessage))
+	assert.NotContains(t, emulatedStdout.String(), aRandomMessage)
+}
+
+func TestTickMessage(t *testing.T) {
+	emulatedStdout := new(bytes.Buffer)
+
+	aRandomMessage := test.RandomString()
+	bar := NewProgressBar(emulatedStdout, 2, 100, 100, DefaultProgressBarFormatterWidth(len(aRandomMessage)))
+
+	assert.True(t, bar.TickMessage(aRandomMessage))
+	assert.Contains(t, emulatedStdout.String(), aRandomMessage)
 }
 
 func testProgressBarWith(t *testing.T, termWidth, width, maxTicks int) {
