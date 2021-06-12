@@ -18,6 +18,9 @@ const (
 
 	// DefaultProgressBarFill default progress bar fill character
 	DefaultProgressBarFill = '\u2587'
+
+	// DefaultProgressBarBlank default progress bar fill character
+	DefaultProgressBarBlank = '\u2591'
 )
 
 // DefaultProgressBarFormatter returns a new instance of the default ProgressBarFormatter
@@ -26,6 +29,7 @@ func DefaultProgressBarFormatter() *SimpleProgressBarFormatter {
 		LeftBorderChar:  DefaultProgressBarLeftBorder,
 		RightBorderChar: DefaultProgressBarRightBorder,
 		FillChar:        DefaultProgressBarFill,
+		BlankChar:       DefaultProgressBarBlank,
 	}
 }
 
@@ -42,6 +46,10 @@ type ProgressBarFormatter interface {
 	// FormatFill returns a string that contains one visible character and optionally
 	// additional styling charatcers such as color codes, background and other effects.
 	FormatFill() string
+
+	// FormatBlank returns a string that contains one visible character and optionally
+	// additional styling charatcers such as color codes, background and other effects.
+	FormatBlank() string
 }
 
 // SimpleProgressBarFormatter a simple ProgressBarFormatter implementation which is based on constructor values.
@@ -49,6 +57,7 @@ type SimpleProgressBarFormatter struct {
 	LeftBorderChar  rune
 	RightBorderChar rune
 	FillChar        rune
+	BlankChar       rune
 }
 
 // FormatLeftBorder returns the left border char
@@ -64,6 +73,11 @@ func (f *SimpleProgressBarFormatter) FormatRightBorder() string {
 // FormatFill returns the fill char
 func (f *SimpleProgressBarFormatter) FormatFill() string {
 	return fmt.Sprintf("%c", f.FillChar)
+}
+
+// FormatBlank returns the blank char
+func (f *SimpleProgressBarFormatter) FormatBlank() string {
+	return fmt.Sprintf("%c", f.BlankChar)
 }
 
 // TickFn a tick handle
@@ -189,7 +203,7 @@ func (b *bar) render() bool {
 			TermControlEraseLine,
 			b.formatter.FormatLeftBorder(),
 			strings.Repeat(b.formatter.FormatFill(), charsToFill),
-			strings.Repeat(" ", spaceChars),
+			strings.Repeat(b.formatter.FormatBlank(), spaceChars),
 			b.formatter.FormatRightBorder(),
 			int(percent*100),
 		),
