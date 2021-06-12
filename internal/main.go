@@ -272,3 +272,7 @@ func (f *customProgressBarFormatter) FormatRightBorder() string {
 func (f *customProgressBarFormatter) FormatFill() string {
 	return f.formatFillFn(fmt.Sprintf("%c", f.Fill))
 }
+
+func (f *customProgressBarFormatter) FormatBlank() string {
+	return f.formatFillFn(fmt.Sprintf("%c", f.Fill))
+}
