@@ -117,7 +117,7 @@ type bar struct {
 	maxTicks           int
 	ticks              int
 	writer             io.Writer
-	width              int
+	calculateWidth     func() int
 	formatter          ProgressBarFormatter
 	renderStringFormat string
 	active             bool
@@ -130,18 +130,21 @@ type progressEvent struct {
 }
 
 // NewProgressBar creates a new progress bar
-// writer 				- the writer to use for output
-// maxTicks 			- how many ticks are to be considered 100% of the progress
-// terminalWidth 	- the width of the terminal
-// width 					- bar width in characters
-// formatter 		  - a formatter for this progress bar
-func NewProgressBar(writer io.Writer, maxTicks int, terminalWidth int, width int, formatter ProgressBarFormatter) ProgressBar {
+// writer 					- the writer to use for output
+// maxTicks 				- how many ticks are to be considered 100% of the progress
+// terminalWidthFn	- a funcrtion that returns the current terminal width
+// width 						- bar width in characters
+// formatter 		  	- a formatter for this progress bar
+func NewProgressBar(writer io.Writer, maxTicks int, terminalWidthFn func() int, width int, formatter ProgressBarFormatter) ProgressBar {
 	renderFormat := fmt.Sprintf("%%s%%%ds %%s%%s%%s%%s %%d%%%%", formatter.MessageAreaWidth())
+	calculateWidth := func() int {
+		return max(0, min(width, terminalWidthFn()-percentAreaSpace-formatter.MessageAreaWidth()))
+	}
 	return &bar{
 		maxTicks:           maxTicks,
 		ticks:              0,
 		writer:             writer,
-		width:              max(0, min(width, terminalWidth-percentAreaSpace-formatter.MessageAreaWidth())),
+		calculateWidth:     calculateWidth,
 		formatter:          formatter,
 		renderStringFormat: renderFormat,
 		mx:                 &sync.RWMutex{},
@@ -149,9 +152,9 @@ func NewProgressBar(writer io.Writer, maxTicks int, terminalWidth int, width int
 }
 
 // NewDefaultProgressBar creates a progress bar with styling
-func NewDefaultProgressBar(writer io.Writer, maxTicks int, terminalWidth int) ProgressBar {
+func NewDefaultProgressBar(writer io.Writer, maxTicks int, terminalWidthFn func() int) ProgressBar {
 	return NewProgressBar(
-		writer, maxTicks, terminalWidth/2, terminalWidth, DefaultProgressBarFormatter(),
+		writer, maxTicks, terminalWidthFn, terminalWidthFn()/2, DefaultProgressBarFormatter(),
 	)
 }
 
@@ -229,7 +232,7 @@ func (b *bar) Start() (tick TickMessageFn, cancel context.CancelFunc, err error)
 }
 
 func (b *bar) render(message string) bool {
-	totalChars := b.width
+	totalChars := b.calculateWidth()
 	percent := float32(b.ticks) / float32(b.maxTicks)
 	charsToFill := int(percent * float32(totalChars))
 	spaceChars := totalChars - charsToFill

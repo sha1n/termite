@@ -27,7 +27,7 @@ var progressPhases = []string{
 }
 
 const spinnerRefreshInterval = time.Millisecond * 50
-const progressRefreshInterval = time.Millisecond * 10
+const progressRefreshInterval = time.Millisecond * 100
 
 const splash = `
  ____  ____  ____  _  _  __  ____  ____    ____  ____  _  _   __  
@@ -39,18 +39,20 @@ const splash = `
 
 type demoContext struct {
 	out       io.Writer
-	termWidth int
+	termWidth func() int
 }
 
 func main() {
-	termWidth, _, _ := termite.GetTerminalDimensions()
 	writer := termite.NewAutoFlushingWriter(os.Stdout)
 
 	termite.Println(splash)
 
 	demo(&demoContext{
-		out:       writer,
-		termWidth: termWidth,
+		out: writer,
+		termWidth: func() int {
+			termWidth, _, _ := termite.GetTerminalDimensions()
+			return termWidth
+		},
 	})
 }
 
@@ -80,7 +82,7 @@ func demoMatrix(ctx *demoContext) {
 		progressRow,
 		5*len(progressPhases),
 		ctx.termWidth,
-		ctx.termWidth/8,
+		ctx.termWidth()/8,
 		termite.DefaultProgressBarFormatter(),
 	)
 	tick, _, _ := pb.Start()
@@ -185,7 +187,7 @@ func demoConcurrentProgressBars(ctx *demoContext) {
 	cursor := termite.NewCursor(termite.StdoutWriter)
 	ticks := 200
 	progressTickerWith := func(width int, formatter termite.ProgressBarFormatter) (func(), context.CancelFunc) {
-		bar := termite.NewProgressBar(termite.StdoutWriter, ticks, width, ctx.termWidth, formatter)
+		bar := termite.NewProgressBar(termite.StdoutWriter, ticks, ctx.termWidth, width, formatter)
 		tick, cancel, _ := bar.Start()
 		actualTicks := 0
 
@@ -201,10 +203,10 @@ func demoConcurrentProgressBars(ctx *demoContext) {
 
 	termWidth := ctx.termWidth
 	termite.AllocateNewLines(4) // allocate 4 lines
-	tick1, cancel1 = progressTickerWith(termWidth*3/16, &customProgressBarFormatter{Fill: '\u258C', formatBorderFn: color.WhiteString, formatFillFn: color.HiCyanString})
-	tick2, cancel2 = progressTickerWith(termWidth*1/4, &customProgressBarFormatter{Fill: '\u2592', formatBorderFn: color.YellowString, formatFillFn: color.BlueString})
-	tick3, cancel3 = progressTickerWith(termWidth*3/8, &customProgressBarFormatter{Fill: '\u2591', formatBorderFn: color.GreenString, formatFillFn: color.RedString})
-	tick4, cancel4 = progressTickerWith(termWidth*1/2, &customProgressBarFormatter{Fill: '\u2587', formatBorderFn: color.RedString, formatFillFn: color.GreenString})
+	tick1, cancel1 = progressTickerWith(termWidth()*3/16, &customProgressBarFormatter{Fill: '\u258C', formatBorderFn: color.WhiteString, formatFillFn: color.HiCyanString})
+	tick2, cancel2 = progressTickerWith(termWidth()*1/4, &customProgressBarFormatter{Fill: '\u2592', formatBorderFn: color.YellowString, formatFillFn: color.BlueString})
+	tick3, cancel3 = progressTickerWith(termWidth()*3/8, &customProgressBarFormatter{Fill: '\u2591', formatBorderFn: color.GreenString, formatFillFn: color.RedString})
+	tick4, cancel4 = progressTickerWith(termWidth()*1/2, &customProgressBarFormatter{Fill: '\u2587', formatBorderFn: color.RedString, formatFillFn: color.GreenString})
 
 	defer func() {
 		cancel1()
