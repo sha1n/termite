@@ -22,7 +22,7 @@ const (
 	// DefaultProgressBarBlank default progress bar fill character
 	DefaultProgressBarBlank = '\u2591'
 
-	percentAreaSpace = 7
+	percentAreaSpace = 8
 )
 
 // DefaultProgressBarFormatter returns a new instance of the default ProgressBarFormatter
@@ -149,7 +149,7 @@ func NewProgressBar(writer io.Writer, maxTicks int, terminalWidth int, width int
 }
 
 // NewDefaultProgressBar creates a progress bar with styling
-func NewDefaultProgressBar(writer io.Writer, terminalWidth int, maxTicks int) ProgressBar {
+func NewDefaultProgressBar(writer io.Writer, maxTicks int, terminalWidth int) ProgressBar {
 	return NewProgressBar(
 		writer, maxTicks, terminalWidth/2, terminalWidth, DefaultProgressBarFormatter(),
 	)
