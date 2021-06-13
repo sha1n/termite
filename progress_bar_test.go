@@ -27,7 +27,7 @@ func TestZeroSizedTerminalProgressBar(t *testing.T) {
 
 func TestTickAnAlreadyDoneProgressBar(t *testing.T) {
 	var emulatedStdout = new(bytes.Buffer)
-	bar := NewDefaultProgressBar(emulatedStdout, fakeTerminalWidth, 2)
+	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidth)
 
 	assert.True(t, bar.Tick())
 	assert.False(t, bar.Tick())
@@ -37,7 +37,7 @@ func TestTickAnAlreadyDoneProgressBar(t *testing.T) {
 
 func TestStart(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
-	bar := NewDefaultProgressBar(emulatedStdout, fakeTerminalWidth, 2)
+	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidth)
 
 	tick, cancel, err := bar.Start()
 
@@ -51,7 +51,7 @@ func TestStart(t *testing.T) {
 
 func TestStartWithAlreadyStartedBar(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
-	bar := NewDefaultProgressBar(emulatedStdout, fakeTerminalWidth, 2)
+	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidth)
 
 	_, _, err := bar.Start()
 	assert.NoError(t, err)
@@ -62,7 +62,7 @@ func TestStartWithAlreadyStartedBar(t *testing.T) {
 
 func TestStartCancel(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
-	bar := NewDefaultProgressBar(emulatedStdout, fakeTerminalWidth, 2)
+	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidth)
 
 	tick, cancel, err := bar.Start()
 
