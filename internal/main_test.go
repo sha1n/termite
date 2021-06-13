@@ -23,7 +23,7 @@ func setupContext() (c *demoContext, teardown func()) {
 	termite.StdoutWriter = emulatedStdout
 	c = &demoContext{
 		out:       emulatedStdout,
-		termWidth: 80,
+		termWidth: func() int { return 80 },
 	}
 
 	return c, teardown

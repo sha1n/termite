@@ -9,25 +9,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	fakeTerminalWidth = 100
+var (
+	fakeTerminalWidth   = 100
+	fakeTerminalWidthFn = func() int { return 100 }
 )
 
 func TestFullWidthProgressBar(t *testing.T) {
-	testProgressBarWith(t, fakeTerminalWidth, fakeTerminalWidth, fakeTerminalWidth)
+	testProgressBarWith(t, fakeTerminalWidthFn, fakeTerminalWidth, fakeTerminalWidth)
 }
 
 func TestOversizedProgressBar(t *testing.T) {
-	testProgressBarWith(t, fakeTerminalWidth*2, fakeTerminalWidth*2, fakeTerminalWidth/2+rand.Intn(fakeTerminalWidth*2))
+	testProgressBarWith(t, fakeTerminalWidthFn, fakeTerminalWidth*2, fakeTerminalWidth/2+rand.Intn(fakeTerminalWidth*2))
 }
 
 func TestZeroSizedTerminalProgressBar(t *testing.T) {
-	testProgressBarWith(t, 0, fakeTerminalWidth*2, fakeTerminalWidth/2+rand.Intn(fakeTerminalWidth*2))
+	testProgressBarWith(t, func() int { return 0 }, fakeTerminalWidth*2, fakeTerminalWidth/2+rand.Intn(fakeTerminalWidth*2))
 }
 
 func TestTickAnAlreadyDoneProgressBar(t *testing.T) {
 	var emulatedStdout = new(bytes.Buffer)
-	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidth)
+	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidthFn)
 
 	assert.True(t, bar.Tick())
 	assert.False(t, bar.Tick())
@@ -37,7 +38,7 @@ func TestTickAnAlreadyDoneProgressBar(t *testing.T) {
 
 func TestStart(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
-	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidth)
+	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidthFn)
 
 	tick, cancel, err := bar.Start()
 
@@ -51,7 +52,7 @@ func TestStart(t *testing.T) {
 
 func TestStartWithAlreadyStartedBar(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
-	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidth)
+	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidthFn)
 
 	_, _, err := bar.Start()
 	assert.NoError(t, err)
@@ -62,7 +63,7 @@ func TestStartWithAlreadyStartedBar(t *testing.T) {
 
 func TestStartCancel(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
-	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidth)
+	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidthFn)
 
 	tick, cancel, err := bar.Start()
 
@@ -77,7 +78,7 @@ func TestStartCancel(t *testing.T) {
 
 func TestTickMessageNotDisplayedIfWidthIsZero(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
-	bar := NewDefaultProgressBar(emulatedStdout, fakeTerminalWidth, 2)
+	bar := NewDefaultProgressBar(emulatedStdout, fakeTerminalWidth, fakeTerminalWidthFn)
 
 	aRandomMessage := test.RandomString()
 
@@ -89,15 +90,15 @@ func TestTickMessage(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
 	aRandomMessage := test.RandomString()
-	bar := NewProgressBar(emulatedStdout, 2, 100, 100, DefaultProgressBarFormatterWidth(len(aRandomMessage)))
+	bar := NewProgressBar(emulatedStdout, 2, fakeTerminalWidthFn, 100, DefaultProgressBarFormatterWidth(len(aRandomMessage)))
 
 	assert.True(t, bar.TickMessage(aRandomMessage))
 	assert.Contains(t, emulatedStdout.String(), aRandomMessage)
 }
 
-func testProgressBarWith(t *testing.T, termWidth, width, maxTicks int) {
+func testProgressBarWith(t *testing.T, termWidthFn func() int, width, maxTicks int) {
 	emulatedStdout := new(bytes.Buffer)
-	bar := NewProgressBar(emulatedStdout, maxTicks, termWidth, width, DefaultProgressBarFormatter())
+	bar := NewProgressBar(emulatedStdout, maxTicks, termWidthFn, width, DefaultProgressBarFormatter())
 
 	var count = 0
 	for {
