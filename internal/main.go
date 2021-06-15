@@ -278,7 +278,7 @@ func (f *customProgressBarFormatter) FormatFill() string {
 }
 
 func (f *customProgressBarFormatter) FormatBlank() string {
-	return f.formatFillFn(fmt.Sprintf("%c", f.Fill))
+	return f.formatFillFn(fmt.Sprintf("%c", termite.DefaultProgressBarBlank))
 }
 
 func (f *customProgressBarFormatter) MessageAreaWidth() int {
