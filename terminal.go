@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
+	tsize "github.com/kopoli/go-terminal-size"
 	"github.com/mattn/go-isatty"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 func init() {
@@ -51,10 +51,14 @@ func AllocateNewLines(count int) {
 // If no TTY returns 0, 0 and an error
 func GetTerminalDimensions() (width int, height int, err error) {
 	if Tty {
-		width, height, err = terminal.GetSize(int(os.Stdin.Fd()))
+		var size tsize.Size
+		if size, err = tsize.GetSize(); err == nil {
+			width = size.Width
+			height = size.Height
+		}
 	} else {
 		err = errors.New("no tty. Terminal dimensions cannot be resolved")
 	}
 
-	return width, height, err
+	return
 }
