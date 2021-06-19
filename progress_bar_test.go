@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/sha1n/clib/pkg/test"
+	"github.com/sha1n/gommons/pkg/test"
 	"github.com/stretchr/testify/assert"
 )
 
