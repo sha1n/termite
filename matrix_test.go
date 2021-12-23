@@ -13,16 +13,14 @@ import (
 )
 
 func TestMatrixWritesToTerminalOutput(t *testing.T) {
-	examples := generateMultiLineExamples(3)
+	example := generateRandomString()
 
 	matrix, cancel := startNewMatrix()
 	defer cancel()
 
-	matrix.NewRow().Update(examples[0])
-	matrix.NewLineWriter().Write([]byte(examples[1]))
-	matrix.NewLineStringWriter().WriteString(examples[2])
+	matrix.NewRow().Update(example)
 
-	assertEventualSequence(t, matrix, expectedRewriteSequenceFor(examples))
+	assertEventualSequence(t, matrix, example)
 }
 
 func TestMatrixUpdatesTerminalOutput(t *testing.T) {
@@ -86,21 +84,6 @@ func TestMatrixNewRangeOrder(t *testing.T) {
 	}
 
 	assert.Equal(t, examples, linesOf(matrix))
-}
-
-func TestWriterLineInterface(t *testing.T) {
-	example := generateRandomString()
-
-	matrix1, cancel1 := startNewMatrix()
-	defer cancel1()
-
-	matrix2, cancel2 := startNewMatrix()
-	defer cancel2()
-
-	matrix1.NewLineStringWriter().WriteString(example)
-	matrix2.NewLineWriter().Write([]byte(example))
-
-	assert.Equal(t, matrix1.(*matrixImpl).rows, matrix2.(*matrixImpl).rows)
 }
 
 func TestMatrixGetRowByID(t *testing.T) {
