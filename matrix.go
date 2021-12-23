@@ -21,16 +21,6 @@ type Matrix interface {
 	// NewRange allocates and returns the specified n umber of rows
 	NewRange(int) []MatrixRow
 
-	// NewLineStringWriter returns a new string writter to interact with a single matrix line
-	//
-	// Deprecated: use NewRow instead
-	NewLineStringWriter() io.StringWriter // FIXME refactor
-
-	// NewLineWriter returns a new writer interface to interact with a single matrix line
-	//
-	// Deprecated: use NewRow instead
-	NewLineWriter() io.Writer // FIXME refactor
-
 	// RefreshInterval returns the refresh interval of this matrix
 	RefreshInterval() time.Duration
 
@@ -170,14 +160,6 @@ func (m *matrixImpl) UpdateTerminal(resetCursorPosition bool) {
 	if resetCursorPosition {
 		c.Up(len(m.rows))
 	}
-}
-
-func (m *matrixImpl) NewLineStringWriter() io.StringWriter {
-	return m.NewRow()
-}
-
-func (m *matrixImpl) NewLineWriter() io.Writer {
-	return m.NewRow()
 }
 
 func (m *matrixImpl) NewRange(count int) []MatrixRow {
