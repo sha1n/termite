@@ -6,7 +6,7 @@ require (
 	github.com/fatih/color v1.15.0
 	github.com/kopoli/go-terminal-size v0.0.0-20170219200355-5c97524c8b54
 	github.com/mattn/go-isatty v0.0.18
-	github.com/sha1n/gommons v0.0.11
+	github.com/sha1n/gommons v0.0.12
 	github.com/stretchr/testify v1.8.2
 )
 

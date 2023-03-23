@@ -14,8 +14,8 @@ github.com/mattn/go-isatty v0.0.18 h1:DOKFKCQ7FNG2L1rbrmstDN4QVRdS89Nkh85u68Uwp9
 github.com/mattn/go-isatty v0.0.18/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/sha1n/gommons v0.0.11 h1:jsC7lt4/YQMICBAurvho/CgDQyQnIASdjQpd4gTpdQQ=
-github.com/sha1n/gommons v0.0.11/go.mod h1:HWNMvAnBj4UdHfJ9Mv4wyOPSVRPT1iR47LgMCQxzkN0=
+github.com/sha1n/gommons v0.0.12 h1:K+XHgR16nZncauXX3MMoEW/fQuMhcskrTeH34x2AI/c=
+github.com/sha1n/gommons v0.0.12/go.mod h1:irwkVp2DvC6PxCkT0nCPuIPD1wb3s99C9EWzzvZPyek=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
