@@ -36,7 +36,7 @@ jobs:
           git diff --quiet || (git add docs/README.md && git commit -m "Synced README")
       - name: Create Pull Request
         id: PR
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "README.md auto-sync"
