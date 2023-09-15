@@ -2,6 +2,7 @@ package termite
 
 import (
 	"bytes"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -15,7 +16,7 @@ const (
 )
 
 func TestSpinnerCharSequence(t *testing.T) {
-	emulatedStdout := new(bytes.Buffer)
+	emulatedStdout := NewThreadSafeBuffer()
 
 	spinner := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
 	cancel, err := spinner.Start()
@@ -28,11 +29,13 @@ func TestSpinnerCharSequence(t *testing.T) {
 }
 
 func TestSpinnerCancellation(t *testing.T) {
-	emulatedStdout := new(bytes.Buffer)
+	emulatedStdout := NewThreadSafeBuffer()
 
 	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
-	cancel, _ := spin.Start()
+	cancel, err := spin.Start()
 
+	assert.NoError(t, err)
+	assert.NotNil(t, cancel)
 	assertSpinnerCharSequence(t, emulatedStdout)
 
 	cancel()
@@ -132,53 +135,46 @@ func bufferContains(outBuffer *bytes.Buffer, expected string) func() bool {
 	}
 }
 
-func assertStoppedEventually(t *testing.T, outBuffer *bytes.Buffer, spinner *spinner) {
+func assertStoppedEventually(t *testing.T, outBuffer *ThreadSafeBufferWriter, spinner *spinner) {
 	assert.Eventually(
 		t,
 		func() bool { return !spinner.isActiveSafe() },
 		timeout,
 		interval,
+		"expected spinner to deactivate",
 	)
-
-	outBuffer.Reset() // clear the buffer
 
 	assert.Eventually(
 		t,
-		func() bool { return outBuffer.UnreadByte() != nil },
+		func() bool {
+			outBuffer.Reset()
+			time.Sleep(spinner.interval * 2)
+			return outBuffer.Len() == 0
+			
+		},
 		timeout,
 		spinner.interval,
+		"expected no more output from spinner",
 	)
 }
 
-func assertSpinnerCharSequence(t *testing.T, outBuffer *bytes.Buffer) {
+func assertSpinnerCharSequence(t *testing.T, outBuffer *ThreadSafeBufferWriter) {
 	charSeq := DefaultSpinnerCharSeq()
-	readChars := []string{}
+	expectedCharSequence := strings.Join(charSeq, "")
+	var read string = ""
 
-	scan := func() {
-		for {
-			r, _, e := outBuffer.ReadRune()
-			print(string(r), ",")
-			if e != nil {
-				continue
-			}
-			readChar := string(r)
-			if len(readChars) == 0 && readChar == charSeq[0] {
-				readChars = append(readChars, readChar)
-			} else if len(readChars) > 0 {
-				for _, ch := range charSeq {
-					if ch == readChar {
-						readChars = append(readChars, ch)
-					}
-
-					if len(readChars) == len(charSeq) {
-						return
-					}
-				}
-			}
+	for {
+		read = stripControlCharacters(outBuffer.String())
+		if len(read) >= len(expectedCharSequence)*2 {
+			break
 		}
 	}
 
-	scan()
+	assert.Contains(t, read, expectedCharSequence)
+}
 
-	assert.Equal(t, charSeq, readChars)
+func stripControlCharacters(input string) string {
+	controlCharsRegex := regexp.MustCompile(`[[:cntrl:]]|\[|K`)
+
+	return controlCharsRegex.ReplaceAllString(input, "")
 }
