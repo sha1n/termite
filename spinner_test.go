@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sha1n/gommons/pkg/io"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,30 +17,30 @@ const (
 )
 
 func TestSpinnerCharSequence(t *testing.T) {
-	emulatedStdout := NewThreadSafeBuffer()
+	probedWriter := io.NewUnlimitedProbedWriter(new(bytes.Buffer))
 
-	spinner := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
+	spinner := NewSpinner(probedWriter, "", interval, DefaultSpinnerFormatter())
 	cancel, err := spinner.Start()
 	defer cancel()
 
 	assert.NoError(t, err)
 	assert.NotNil(t, cancel)
 
-	assertSpinnerCharSequence(t, emulatedStdout)
+	assertSpinnerCharSequence(t, probedWriter)
 }
 
 func TestSpinnerCancellation(t *testing.T) {
-	emulatedStdout := NewThreadSafeBuffer()
+	probedWriter := io.NewUnlimitedProbedWriter(new(bytes.Buffer))
 
-	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
+	spin := NewSpinner(probedWriter, "", interval, DefaultSpinnerFormatter())
 	cancel, err := spin.Start()
 
 	assert.NoError(t, err)
 	assert.NotNil(t, cancel)
-	assertSpinnerCharSequence(t, emulatedStdout)
+	assertSpinnerCharSequence(t, probedWriter)
 
 	cancel()
-	assertStoppedEventually(t, emulatedStdout, spin.(*spinner))
+	assertStoppedEventually(t, probedWriter, spin.(*spinner))
 }
 
 func TestSpinnerStartAlreadyRunning(t *testing.T) {
@@ -135,7 +136,7 @@ func bufferContains(outBuffer *bytes.Buffer, expected string) func() bool {
 	}
 }
 
-func assertStoppedEventually(t *testing.T, outBuffer *ThreadSafeBufferWriter, spinner *spinner) {
+func assertStoppedEventually(t *testing.T, probedWriter *io.ProbedWriter, spinner *spinner) {
 	assert.Eventually(
 		t,
 		func() bool { return !spinner.isActiveSafe() },
@@ -147,10 +148,10 @@ func assertStoppedEventually(t *testing.T, outBuffer *ThreadSafeBufferWriter, sp
 	assert.Eventually(
 		t,
 		func() bool {
-			outBuffer.Reset()
+			probedWriter.Reset()
 			time.Sleep(spinner.interval * 2)
-			return outBuffer.Len() == 0
-			
+			return len(probedWriter.Bytes()) == 0
+
 		},
 		timeout,
 		spinner.interval,
@@ -158,13 +159,13 @@ func assertStoppedEventually(t *testing.T, outBuffer *ThreadSafeBufferWriter, sp
 	)
 }
 
-func assertSpinnerCharSequence(t *testing.T, outBuffer *ThreadSafeBufferWriter) {
+func assertSpinnerCharSequence(t *testing.T, probedWriter *io.ProbedWriter) {
 	charSeq := DefaultSpinnerCharSeq()
 	expectedCharSequence := strings.Join(charSeq, "")
 	var read string = ""
 
 	for {
-		read = stripControlCharacters(outBuffer.String())
+		read = stripControlCharacters(probedWriter.String())
 		if len(read) >= len(expectedCharSequence)*2 {
 			break
 		}
