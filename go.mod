@@ -7,7 +7,7 @@ require (
 	github.com/kopoli/go-terminal-size v0.0.0-20170219200355-5c97524c8b54
 	github.com/mattn/go-isatty v0.0.20
 	github.com/sha1n/gommons v0.0.17
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 )
 
 require (
