@@ -1,6 +1,8 @@
 module github.com/sha1n/termite
 
-go 1.21
+go 1.24.0
+
+toolchain go1.24.1
 
 require (
 	github.com/fatih/color v1.18.0
