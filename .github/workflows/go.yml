@@ -25,7 +25,7 @@ jobs:
           go test -v -covermode=count -coverprofile=coverage.out ./...
 
       - name: Coverage
-        uses: jandelgado/gcov2lcov-action@v1.1.1
+        uses: jandelgado/gcov2lcov-action@v1.2.0
       - name: Coveralls
         uses: coverallsapp/github-action@v2.3.6
         with:
