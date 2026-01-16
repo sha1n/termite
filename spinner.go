@@ -206,13 +206,6 @@ func (s *spinner) createSpinnerRing() *ring.Ring {
 	return r
 }
 
-func (s *spinner) isActiveSafe() bool {
-	s.stateMx.RLock()
-	defer s.stateMx.RUnlock()
-
-	return s.active
-}
-
 func (s *spinner) setActiveSafe(active bool) {
 	s.stateMx.Lock()
 	defer s.stateMx.Unlock()

@@ -30,41 +30,41 @@ func NewCursor(writer io.Writer) Cursor {
 }
 
 func (c cursor) Position(row, col int) {
-	c.writeString(fmt.Sprintf(termControlCursorPositionFmt, row, col))
+	_, _ = c.writeString(fmt.Sprintf(termControlCursorPositionFmt, row, col))
 }
 
 func (c cursor) Up(lines int) {
-	c.writeString(fmt.Sprintf(termControlCursorUpFmt, lines))
+	_, _ = c.writeString(fmt.Sprintf(termControlCursorUpFmt, lines))
 }
 
 func (c cursor) Down(lines int) {
-	c.writeString(fmt.Sprintf(termControlCursorDownFmt, lines))
+	_, _ = c.writeString(fmt.Sprintf(termControlCursorDownFmt, lines))
 }
 
 func (c cursor) Forward(cols int) {
-	c.writeString(fmt.Sprintf(termControlCursorForwardFmt, cols))
+	_, _ = c.writeString(fmt.Sprintf(termControlCursorForwardFmt, cols))
 }
 
 func (c cursor) Backward(cols int) {
-	c.writeString(fmt.Sprintf(termControlCursorBackwardFmt, cols))
+	_, _ = c.writeString(fmt.Sprintf(termControlCursorBackwardFmt, cols))
 }
 
 func (c cursor) Hide() {
-	c.writeString(termControlCursorHide)
+	_, _ = c.writeString(termControlCursorHide)
 }
 
 func (c cursor) Show() {
-	c.writeString(termControlCursorShow)
+	_, _ = c.writeString(termControlCursorShow)
 }
 
 func (c cursor) SavePosition() {
-	c.writeString(termControlCursorSave)
+	_, _ = c.writeString(termControlCursorSave)
 }
 
 func (c cursor) RestorePosition() {
-	c.writeString(termControlCursorRestore)
+	_, _ = c.writeString(termControlCursorRestore)
 }
 
-func (c cursor) writeString(s string) {
-	io.WriteString(c.writer, s)
+func (c cursor) writeString(s string) (int, error) {
+	return io.WriteString(c.writer, s)
 }
