@@ -1,4 +1,5 @@
 [![Go](https://github.com/sha1n/termite/actions/workflows/go.yml/badge.svg)](https://github.com/sha1n/termite/actions/workflows/go.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/sha1n/termite.svg)](https://pkg.go.dev/github.com/sha1n/termite)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/sha1n/termite)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sha1n/termite)](https://goreportcard.com/report/github.com/sha1n/termite)
 [![Coverage Status](https://coveralls.io/repos/github/sha1n/termite/badge.svg?branch=master&service=github)](https://coveralls.io/github/sha1n/termite?branch=master)
@@ -15,6 +16,7 @@
   - [Examples](#examples)
     - [Spinner](#spinner)
     - [Progress Bar](#progress-bar)
+    - [Matrix](#matrix)
   - [Showcase](#showcase)
 
 # TERMite
@@ -28,10 +30,13 @@ go get github.com/sha1n/termite
 ## Examples
 ### Spinner
 ```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
 refreshInterval := time.Millisecond * 100
 spinner := termite.NewSpinner(termite.StdoutWriter, "Processing...", refreshInterval, termite.DefaultSpinnerFormatter())
 
-if _, e := spinner.Start(); e == nil {
+if err := spinner.Start(ctx); err == nil {
   doWork()
   
   _ = spinner.Stop("Done!")
@@ -40,18 +45,43 @@ if _, e := spinner.Start(); e == nil {
 
 ### Progress Bar
 ```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
 termWidth, _, _ := termite.GetTerminalDimensions()
 progressBar := termite.NewProgressBar(termite.StdoutWriter, tickCount, width, termWidth, termite.DefaultProgressBarFormatter())
 
-if tick, cancel, err := progressBar.Start(); err == nil {
-  defer cancel()
-  
+if tick, err := progressBar.Start(ctx); err == nil {
   doWork(tick)
 }
 ```
 
+### Matrix
+```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+refreshInterval := time.Millisecond * 100
+matrix := termite.NewMatrix(termite.StdoutWriter, refreshInterval)
+done := matrix.Start(ctx)
+
+// Allocate rows for concurrent tasks
+rows := matrix.NewRange(3)
+for i, row := range rows {
+  go func(idx int, r termite.MatrixRow) {
+    r.Update(fmt.Sprintf("Task %d: Running...", idx+1))
+    doWork()
+    r.Update(fmt.Sprintf("Task %d: Done!", idx+1))
+  }(i, row)
+}
+
+// Wait for completion
+cancel()
+<-done
+```
+
 ## Showcase
-The code for this demo can be found in [internal/main.go](https://github.com/sha1n/termite/blob/bd468fd578e96f32392d5e6abd0412b1dfd9edfa/internal/main.go) (`go run internal/main.go`). 
+The code for this demo can be found in [internal/main.go](https://github.com/sha1n/termite/blob/master/internal/main.go) (`go run -mod=readonly ./internal`). 
 
 <img src="images/termite_demo_800.gif" width="100%">
 
