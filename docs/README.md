@@ -81,7 +81,7 @@ cancel()
 ```
 
 ## Showcase
-The code for this demo can be found in [internal/main.go](https://github.com/sha1n/termite/blob/master/internal/main.go) (`go run -mod=readonly ./internal`). 
+The code for this demo can be found in [cmd/demo/main.go](https://github.com/sha1n/termite/blob/master/cmd/demo/main.go) (`go run cmd/demo/main.go`).
 
 <img src="images/termite_demo_800.gif" width="100%">
 
