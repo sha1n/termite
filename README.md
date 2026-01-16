@@ -1,4 +1,5 @@
 [![Go](https://github.com/sha1n/termite/actions/workflows/go.yml/badge.svg)](https://github.com/sha1n/termite/actions/workflows/go.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/sha1n/termite.svg)](https://pkg.go.dev/github.com/sha1n/termite)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/sha1n/termite)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sha1n/termite)](https://goreportcard.com/report/github.com/sha1n/termite)
 [![Coverage Status](https://coveralls.io/repos/github/sha1n/termite/badge.svg?branch=master&service=github)](https://coveralls.io/github/sha1n/termite?branch=master)
@@ -15,6 +16,7 @@
   - [Examples](#examples)
     - [Spinner](#spinner)
     - [Progress Bar](#progress-bar)
+    - [Matrix](#matrix)
   - [Showcase](#showcase)
 
 # TERMite
@@ -52,6 +54,30 @@ progressBar := termite.NewProgressBar(termite.StdoutWriter, tickCount, width, te
 if tick, err := progressBar.Start(ctx); err == nil {
   doWork(tick)
 }
+```
+
+### Matrix
+```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+refreshInterval := time.Millisecond * 100
+matrix := termite.NewMatrix(termite.StdoutWriter, refreshInterval)
+done := matrix.Start(ctx)
+
+// Allocate rows for concurrent tasks
+rows := matrix.NewRange(3)
+for i, row := range rows {
+  go func(idx int, r termite.MatrixRow) {
+    r.Update(fmt.Sprintf("Task %d: Running...", idx+1))
+    doWork()
+    r.Update(fmt.Sprintf("Task %d: Done!", idx+1))
+  }(i, row)
+}
+
+// Wait for completion
+cancel()
+<-done
 ```
 
 ## Showcase
