@@ -129,3 +129,18 @@ func TestProgressBarStartWithCancelledContext(t *testing.T) {
 	assert.Equal(t, context.Canceled, err)
 	assert.Nil(t, tick)
 }
+
+func TestProgressBarIsDoneEdgeCases(t *testing.T) {
+	t.Run("maxTicks 0", func(t *testing.T) {
+		bar := NewDefaultProgressBar(new(bytes.Buffer), 0, fakeTerminalWidthFn)
+		assert.True(t, bar.IsDone())
+		assert.False(t, bar.Tick())
+	})
+
+	t.Run("maxTicks 1", func(t *testing.T) {
+		bar := NewDefaultProgressBar(new(bytes.Buffer), 1, fakeTerminalWidthFn)
+		assert.False(t, bar.IsDone())
+		assert.False(t, bar.Tick()) // 1st tick makes it 100% and returns false
+		assert.True(t, bar.IsDone())
+	})
+}

@@ -3,17 +3,16 @@ package termite
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"math/rand"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/sha1n/gommons/pkg/test"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMatrixWritesToTerminalOutput(t *testing.T) {
-	example := generateRandomString()
+	example := test.RandomString()
 
 	matrix, cancel := startNewMatrix()
 	defer cancel()
@@ -32,7 +31,7 @@ func TestMatrixUpdatesTerminalOutput(t *testing.T) {
 	matrix.NewRow().Update(examples[0])
 	row2 := matrix.NewRow()
 	row2.WriteString(examples[1])
-	examples[1] = generateRandomString()
+	examples[1] = test.RandomString()
 	matrix.NewRow().Update(examples[2])
 	row2.WriteString(examples[1])
 
@@ -40,7 +39,7 @@ func TestMatrixUpdatesTerminalOutput(t *testing.T) {
 }
 
 func TestMatrixRowUpdateTrimsLineFeeds(t *testing.T) {
-	expected := generateRandomString()
+	expected := test.RandomString()
 
 	matrix, cancel := startNewMatrix()
 	defer cancel()
@@ -117,6 +116,31 @@ func TestMatrixGetRowByIdWithIllegalValue(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestMatrixConcurrentStress(t *testing.T) {
+	matrix, cancel := startNewMatrix()
+	defer cancel()
+
+	count := 100
+	rows := matrix.NewRange(count)
+	startC := make(chan struct{})
+	doneC := make(chan struct{})
+
+	for i := 0; i < count; i++ {
+		go func(row MatrixRow) {
+			<-startC
+			for j := 0; j < 100; j++ {
+				row.Update(test.RandomString())
+			}
+			doneC <- struct{}{}
+		}(rows[i])
+	}
+
+	close(startC)
+	for i := 0; i < count; i++ {
+		<-doneC
+	}
+}
+
 func assertEventualSequence(t *testing.T, matrix Matrix, expected string) {
 	contantsAllExamplesInOrderFn := func() bool {
 		return strings.Contains(
@@ -154,15 +178,11 @@ func startNewMatrix() (Matrix, context.CancelFunc) {
 	return matrix, cancel
 }
 
-func generateRandomString() string {
-	return fmt.Sprintf("[%d]", rand.Intn(time.Now().Nanosecond()))
-}
-
 func generateMultiLineExamples(count int) []string {
 	examples := []string{}
 
 	for i := 0; i < count; i++ {
-		examples = append(examples, generateRandomString())
+		examples = append(examples, test.RandomString())
 	}
 
 	return examples

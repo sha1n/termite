@@ -60,6 +60,15 @@ type Spinner interface {
 	SetTitle(title string) error
 }
 
+// SpinnerBuilder follows the builder pattern for creating a Spinner.
+type SpinnerBuilder interface {
+	WithWriter(writer io.Writer) SpinnerBuilder
+	WithTitle(title string) SpinnerBuilder
+	WithInterval(interval time.Duration) SpinnerBuilder
+	WithFormatter(formatter SpinnerFormatter) SpinnerBuilder
+	Build() Spinner
+}
+
 type spinner struct {
 	writer    io.Writer
 	interval  time.Duration
@@ -88,6 +97,46 @@ func NewSpinner(writer io.Writer, title string, interval time.Duration, formatte
 // NewDefaultSpinner creates a new Spinner that writes to Stdout with a default update interval
 func NewDefaultSpinner() Spinner {
 	return NewSpinner(StdoutWriter, "", time.Millisecond*100, DefaultSpinnerFormatter())
+}
+
+type spinnerBuilder struct {
+	writer    io.Writer
+	title     string
+	interval  time.Duration
+	formatter SpinnerFormatter
+}
+
+// NewSpinnerBuilder creates a new SpinnerBuilder with default values.
+func NewSpinnerBuilder() SpinnerBuilder {
+	return &spinnerBuilder{
+		writer:    StdoutWriter,
+		interval:  time.Millisecond * 100,
+		formatter: DefaultSpinnerFormatter(),
+	}
+}
+
+func (b *spinnerBuilder) WithWriter(writer io.Writer) SpinnerBuilder {
+	b.writer = writer
+	return b
+}
+
+func (b *spinnerBuilder) WithTitle(title string) SpinnerBuilder {
+	b.title = title
+	return b
+}
+
+func (b *spinnerBuilder) WithInterval(interval time.Duration) SpinnerBuilder {
+	b.interval = interval
+	return b
+}
+
+func (b *spinnerBuilder) WithFormatter(formatter SpinnerFormatter) SpinnerBuilder {
+	b.formatter = formatter
+	return b
+}
+
+func (b *spinnerBuilder) Build() Spinner {
+	return NewSpinner(b.writer, b.title, b.interval, b.formatter)
 }
 
 func (s *spinner) writeString(str string) (n int, err error) {
