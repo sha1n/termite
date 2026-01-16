@@ -11,6 +11,8 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/sha1n/termite"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var taskDoneMarkUniChar = color.GreenString("\u2714")
@@ -240,7 +242,7 @@ func printTitle(s string, ctx *demoContext) {
 	chars := len(s)
 	border := strings.Repeat("-", chars+2)
 	termite.Println(border)
-	termite.Println(fmt.Sprintf(" %s ", color.GreenString(strings.Title(s))))
+	termite.Println(fmt.Sprintf(" %s ", color.GreenString(cases.Title(language.English).String(s))))
 	termite.Println(border)
 	termite.Println("")
 }
