@@ -96,6 +96,7 @@ func TestMatrixGetRowByID(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, aRow, fetchedRow)
+	assert.Equal(t, 1, fetchedRow.ID().Row())
 }
 
 func TestMatrixGetRowByIdWithInvalidRange(t *testing.T) {
