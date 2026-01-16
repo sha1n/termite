@@ -2,6 +2,7 @@ package termite
 
 import (
 	"bytes"
+	"context"
 	"regexp"
 	"strings"
 	"testing"
@@ -20,7 +21,8 @@ func TestSpinnerCharSequence(t *testing.T) {
 	probedWriter := io.NewUnlimitedProbedWriter(new(bytes.Buffer))
 
 	spinner := NewSpinner(probedWriter, "", interval, DefaultSpinnerFormatter())
-	cancel, err := spinner.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	err := spinner.Start(ctx)
 	defer cancel()
 
 	assert.NoError(t, err)
@@ -33,7 +35,8 @@ func TestSpinnerCancellation(t *testing.T) {
 	probedWriter := io.NewUnlimitedProbedWriter(new(bytes.Buffer))
 
 	spin := NewSpinner(probedWriter, "", interval, DefaultSpinnerFormatter())
-	cancel, err := spin.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	err := spin.Start(ctx)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, cancel)
@@ -47,10 +50,11 @@ func TestSpinnerStartAlreadyRunning(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
 	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
-	cancel, _ := spin.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	_ = spin.Start(ctx)
 	defer cancel()
 
-	_, err := spin.Start()
+	err := spin.Start(ctx)
 	assert.Error(t, err)
 }
 
@@ -58,11 +62,14 @@ func TestSpinnerStopAlreadyStopped(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
 	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
-	_, _ = spin.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_ = spin.Start(ctx)
+
 	err := spin.Stop("")
 	assert.NoError(t, err)
 
-	assert.Error(t, spin.Stop(""), "expected error")
+	assert.Error(t, spin.Stop(""), "expected error on second stop")
 }
 
 func TestSpinnerStopMessage(t *testing.T) {
@@ -70,7 +77,9 @@ func TestSpinnerStopMessage(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
 	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
-	_, err := spin.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err := spin.Start(ctx)
 	assert.NoError(t, err)
 
 	err = spin.Stop(expectedStopMessage)
@@ -85,8 +94,9 @@ func TestSpinnerTitle(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
 	spin := NewSpinner(emulatedStdout, expectedTitle, interval, DefaultSpinnerFormatter())
-	cancel, _ := spin.Start()
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	_ = spin.Start(ctx)
 
 	assertBufferEventuallyContains(t, emulatedStdout, expectedTitle)
 }
@@ -97,8 +107,9 @@ func TestSpinnerSetTitle(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
 	spin := NewSpinner(emulatedStdout, expectedInitialTitle, interval, DefaultSpinnerFormatter())
-	cancel, _ := spin.Start()
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	_ = spin.Start(ctx)
 
 	assertBufferEventuallyContains(t, emulatedStdout, expectedInitialTitle)
 
@@ -113,7 +124,9 @@ func TestSpinnerSetTitleOnStoppedSpinner(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 
 	spin := NewSpinner(emulatedStdout, expectedInitialTitle, interval, DefaultSpinnerFormatter())
-	_, _ = spin.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_ = spin.Start(ctx)
 
 	assertBufferEventuallyContains(t, emulatedStdout, expectedInitialTitle)
 
@@ -178,4 +191,16 @@ func stripControlCharacters(input string) string {
 	controlCharsRegex := regexp.MustCompile(`[[:cntrl:]]|\[|K`)
 
 	return controlCharsRegex.ReplaceAllString(input, "")
+}
+
+func TestSpinnerStartWithCancelledContext(t *testing.T) {
+	emulatedStdout := new(bytes.Buffer)
+
+	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel before starting
+
+	err := spin.Start(ctx)
+	assert.Error(t, err)
+	assert.Equal(t, context.Canceled, err)
 }

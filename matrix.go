@@ -12,8 +12,10 @@ import (
 
 // Matrix is a multiline structure that reflects its state on screen
 type Matrix interface {
-	// Start starts to update this matrix in the background
-	Start() context.CancelFunc
+	// Start starts to update this matrix in the background.
+	// Returns a done channel that closes when the goroutine exits.
+	// If the context is already cancelled, returns nil.
+	Start(context.Context) <-chan struct{}
 
 	// NewRow allocates and returns a MatrixRow
 	NewRow() MatrixRow
@@ -81,27 +83,31 @@ func (m *matrixImpl) RefreshInterval() time.Duration {
 }
 
 // Start starts the matrix update process.
-// Returns a cancel handle to stop the matrix updates.
-func (m *matrixImpl) Start() context.CancelFunc {
-	context, cancel := context.WithCancel(context.Background())
+// Returns a done channel that closes when the goroutine exits.
+// If the context is already cancelled, returns nil.
+func (m *matrixImpl) Start(ctx context.Context) <-chan struct{} {
+	if ctx.Err() != nil {
+		return nil
+	}
 
+	done := make(chan struct{})
 	waitStart := &sync.WaitGroup{}
 	waitStart.Add(1)
-	var drainWaitGroup *sync.WaitGroup
 
 	go func() {
 		timer := time.NewTicker(m.refreshInterval)
-		drainWaitGroup = &sync.WaitGroup{}
-		drainWaitGroup.Add(1)
-		// now that we loaded the drain wait group, we can release the caller
+		// now that we set up, we can release the caller
 		waitStart.Done()
+
+		defer func() {
+			timer.Stop()
+			m.UpdateTerminal(false)
+			close(done)
+		}()
 
 		for {
 			select {
-			case <-context.Done():
-				timer.Stop()
-				m.UpdateTerminal(false)
-				drainWaitGroup.Done()
+			case <-ctx.Done():
 				return
 
 			case <-timer.C:
@@ -112,11 +118,7 @@ func (m *matrixImpl) Start() context.CancelFunc {
 
 	waitStart.Wait()
 
-	return func() {
-		cancel()
-		// Wait for the final update to complete
-		drainWaitGroup.Wait()
-	}
+	return done
 }
 
 func (m *matrixImpl) GetRow(index int) (row MatrixRow, err error) {

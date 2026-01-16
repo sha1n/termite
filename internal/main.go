@@ -71,7 +71,8 @@ func demoMatrix(ctx *demoContext) {
 	printTitle("Matrix Layout", ctx)
 
 	m := termite.NewMatrix(termite.StdoutWriter, progressRefreshInterval)
-	cancel := m.Start()
+	matrixCtx, cancel := context.WithCancel(context.Background())
+	done := m.Start(matrixCtx)
 
 	// allocating rows for 5 tasks and one space row
 	m.NewRange(6)
@@ -85,7 +86,7 @@ func demoMatrix(ctx *demoContext) {
 		ctx.termWidth()/8,
 		termite.DefaultProgressBarFormatter(),
 	)
-	tick, _, _ := pb.Start()
+	tick, _ := pb.Start(matrixCtx)
 
 	update := func(rowIndex int, status string) {
 		// to make it look more realistic we randomize task duration
@@ -108,6 +109,7 @@ func demoMatrix(ctx *demoContext) {
 	}
 
 	cancel()
+	<-done
 	termite.Println("")
 }
 
@@ -115,7 +117,8 @@ func demoSpinner(ctx *demoContext) {
 	printTitle("Spinner progress indicator", ctx)
 
 	m := termite.NewMatrix(termite.StdoutWriter, progressRefreshInterval)
-	cancel := m.Start()
+	matrixCtx, cancel := context.WithCancel(context.Background())
+	done := m.Start(matrixCtx)
 
 	customFormatter1 := &customSpinnerFormatter{
 		charSeq:           []string{"\u2588", "\u2587", "\u2586", "\u2585", "\u2584", "\u2583", "\u2582", "\u2581"},
@@ -134,7 +137,7 @@ func demoSpinner(ctx *demoContext) {
 	}
 
 	for _, spinner := range spinners {
-		_, _ = spinner.Start()
+		_ = spinner.Start(matrixCtx)
 	}
 	time.Sleep(time.Second)
 	for _, spinner := range spinners {
@@ -146,6 +149,7 @@ func demoSpinner(ctx *demoContext) {
 	}
 
 	cancel()
+	<-done
 	termite.Println("")
 }
 
@@ -188,7 +192,8 @@ func demoConcurrentProgressBars(ctx *demoContext) {
 	ticks := 200
 	progressTickerWith := func(width int, formatter termite.ProgressBarFormatter) (func(), context.CancelFunc) {
 		bar := termite.NewProgressBar(termite.StdoutWriter, ticks, ctx.termWidth, width, formatter)
-		tick, cancel, _ := bar.Start()
+		c, cancel := context.WithCancel(context.Background())
+		tick, _ := bar.Start(c)
 		actualTicks := 0
 
 		return func() {

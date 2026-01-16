@@ -28,10 +28,13 @@ go get github.com/sha1n/termite
 ## Examples
 ### Spinner
 ```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
 refreshInterval := time.Millisecond * 100
 spinner := termite.NewSpinner(termite.StdoutWriter, "Processing...", refreshInterval, termite.DefaultSpinnerFormatter())
 
-if _, e := spinner.Start(); e == nil {
+if err := spinner.Start(ctx); err == nil {
   doWork()
   
   _ = spinner.Stop("Done!")
@@ -40,18 +43,19 @@ if _, e := spinner.Start(); e == nil {
 
 ### Progress Bar
 ```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
 termWidth, _, _ := termite.GetTerminalDimensions()
 progressBar := termite.NewProgressBar(termite.StdoutWriter, tickCount, width, termWidth, termite.DefaultProgressBarFormatter())
 
-if tick, cancel, err := progressBar.Start(); err == nil {
-  defer cancel()
-  
+if tick, err := progressBar.Start(ctx); err == nil {
   doWork(tick)
 }
 ```
 
 ## Showcase
-The code for this demo can be found in [internal/main.go](https://github.com/sha1n/termite/blob/bd468fd578e96f32392d5e6abd0412b1dfd9edfa/internal/main.go) (`go run internal/main.go`). 
+The code for this demo can be found in [internal/main.go](https://github.com/sha1n/termite/blob/master/internal/main.go) (`go run -mod=readonly ./internal`). 
 
 <img src="docs/images/termite_demo_800.gif" width="100%">
 
