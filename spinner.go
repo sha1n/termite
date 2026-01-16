@@ -55,7 +55,7 @@ func (f *SimpleSpinnerFormatter) CharSeq() []string {
 
 // Spinner a spinning progress indicator
 type Spinner interface {
-	Start() (context.CancelFunc, error)
+	Start(context.Context) error
 	Stop(string) error
 	SetTitle(title string) error
 }
@@ -94,17 +94,20 @@ func (s *spinner) writeString(str string) (n int, err error) {
 	return io.WriteString(s.writer, str)
 }
 
-// Start starts the spinner in the background and returns a cancellation handle and an error in case the spinner is already running.
-func (s *spinner) Start() (cancel context.CancelFunc, err error) {
+// Start starts the spinner in the background.
+func (s *spinner) Start(ctx context.Context) (err error) {
 	s.stateMx.Lock()
 	defer s.stateMx.Unlock()
 
 	if s.active {
-		return nil, errors.New("spinner already active")
+		return errors.New("spinner already active")
+	}
+
+	if ctx.Err() != nil {
+		return ctx.Err()
 	}
 
 	s.active = true
-	context, cancel := context.WithCancel(context.Background())
 	waitStart := &sync.WaitGroup{}
 	waitStart.Add(1)
 
@@ -127,7 +130,7 @@ func (s *spinner) Start() (cancel context.CancelFunc, err error) {
 
 		for {
 			select {
-			case <-context.Done():
+			case <-ctx.Done():
 				timer.Stop()
 				close(s.titleC)
 
@@ -155,7 +158,7 @@ func (s *spinner) Start() (cancel context.CancelFunc, err error) {
 
 	waitStart.Wait()
 
-	return cancel, err
+	return err
 }
 
 // Stop stops the spinner and displays the specified message

@@ -148,7 +148,8 @@ func expectedRewriteSequenceFor(examples []string) string {
 func startNewMatrix() (Matrix, context.CancelFunc) {
 	emulatedOutput := new(bytes.Buffer)
 	matrix := NewMatrix(emulatedOutput, time.Millisecond)
-	cancel := matrix.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	_ = matrix.Start(ctx)
 
 	return matrix, cancel
 }
@@ -175,4 +176,80 @@ func linesOf(m Matrix) []string {
 	}
 
 	return lines
+}
+
+func TestMatrixStartWithCancelledContext(t *testing.T) {
+	emulatedOutput := new(bytes.Buffer)
+	matrix := NewMatrix(emulatedOutput, time.Millisecond)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel before starting
+
+	done := matrix.Start(ctx)
+	assert.Nil(t, done, "expected nil done channel when context is already cancelled")
+}
+
+func TestMatrixStopsWritingAfterCancel(t *testing.T) {
+	emulatedOutput := new(bytes.Buffer)
+	refreshInterval := time.Millisecond * 10
+	matrix := NewMatrix(emulatedOutput, refreshInterval)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	_ = matrix.Start(ctx)
+
+	row := matrix.NewRow()
+	row.Update("test content")
+
+	time.Sleep(refreshInterval * 3)
+	assert.True(t, emulatedOutput.Len() > 0, "expected some output")
+
+	cancel()
+	time.Sleep(refreshInterval * 3)
+	outputLenAfterCancel := emulatedOutput.Len()
+
+	time.Sleep(refreshInterval * 5)
+	assert.Equal(t, outputLenAfterCancel, emulatedOutput.Len(),
+		"matrix continued writing after context was cancelled")
+}
+
+// TestMatrixCancelWaitsForCompletion verifies that waiting on the done channel
+// guarantees no more output will be written - prevents output interleaving.
+func TestMatrixCancelWaitsForCompletion(t *testing.T) {
+	emulatedOutput := new(bytes.Buffer)
+	refreshInterval := time.Millisecond * 10
+	matrix := NewMatrix(emulatedOutput, refreshInterval)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := matrix.Start(ctx)
+	assert.NotNil(t, done)
+
+	row := matrix.NewRow()
+	row.Update("test content")
+
+	time.Sleep(refreshInterval * 2)
+	initialLen := emulatedOutput.Len()
+	assert.True(t, initialLen > 0)
+
+	cancel()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("done channel was not closed within timeout")
+	}
+
+	// Verify channel is closed
+	select {
+	case _, ok := <-done:
+		assert.False(t, ok)
+	default:
+		t.Fatal("done channel should be closed")
+	}
+
+	outputLenAfterWait := emulatedOutput.Len()
+	assert.GreaterOrEqual(t, outputLenAfterWait, initialLen)
+
+	time.Sleep(refreshInterval * 5)
+	assert.Equal(t, outputLenAfterWait, emulatedOutput.Len(),
+		"matrix wrote output after done channel closed")
 }

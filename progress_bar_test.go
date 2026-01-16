@@ -2,6 +2,7 @@ package termite
 
 import (
 	"bytes"
+	"context"
 	"math/rand"
 	"testing"
 
@@ -39,8 +40,9 @@ func TestTickAnAlreadyDoneProgressBar(t *testing.T) {
 func TestStart(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidthFn)
-
-	tick, cancel, err := bar.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	tick, err := bar.Start(ctx)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, tick)
@@ -53,19 +55,22 @@ func TestStart(t *testing.T) {
 func TestStartWithAlreadyStartedBar(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidthFn)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	_, _, err := bar.Start()
+	_, err := bar.Start(ctx)
 	assert.NoError(t, err)
 
-	_, _, err = bar.Start()
+	_, err = bar.Start(ctx)
 	assert.Error(t, err)
 }
 
 func TestStartCancel(t *testing.T) {
 	emulatedStdout := new(bytes.Buffer)
 	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidthFn)
+	ctx, cancel := context.WithCancel(context.Background())
 
-	tick, cancel, err := bar.Start()
+	tick, err := bar.Start(ctx)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, tick)
@@ -110,4 +115,17 @@ func testProgressBarWith(t *testing.T, termWidthFn func() int, width, maxTicks i
 
 	assert.True(t, bar.IsDone())
 	assert.Equal(t, maxTicks-1, count)
+}
+
+func TestProgressBarStartWithCancelledContext(t *testing.T) {
+	emulatedStdout := new(bytes.Buffer)
+	bar := NewDefaultProgressBar(emulatedStdout, 2, fakeTerminalWidthFn)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel before starting
+
+	tick, err := bar.Start(ctx)
+	assert.Error(t, err)
+	assert.Equal(t, context.Canceled, err)
+	assert.Nil(t, tick)
 }

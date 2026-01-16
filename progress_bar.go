@@ -110,7 +110,7 @@ type ProgressBar interface {
 	Tick() bool
 	TickMessage(message string) bool
 	IsDone() bool
-	Start() (TickMessageFn, context.CancelFunc, error)
+	Start(context.Context) (TickMessageFn, error)
 }
 
 type bar struct {
@@ -181,18 +181,20 @@ func (b *bar) TickMessage(message string) bool {
 
 // Start starts the progress bar in the background and returns a tick handle, a cancellation handle and an error in case
 // this bar has already been started.
-func (b *bar) Start() (tick TickMessageFn, cancel context.CancelFunc, err error) {
+func (b *bar) Start(ctx context.Context) (tick TickMessageFn, err error) {
 	defer b.mx.Unlock()
 	b.mx.Lock()
 
 	if b.active {
-		return nil, nil, errors.New("Progress bar already running in the background")
+		return nil, errors.New("Progress bar already running in the background")
 	}
+
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
 	b.active = true
 	b.render("")
-
-	var ctx context.Context
-	ctx, cancel = context.WithCancel(context.Background())
 
 	events := make(chan progressEvent)
 	var done bool
@@ -228,7 +230,7 @@ func (b *bar) Start() (tick TickMessageFn, cancel context.CancelFunc, err error)
 
 	waitStart.Wait()
 
-	return tick, cancel, err
+	return tick, err
 }
 
 func (b *bar) render(message string) bool {
