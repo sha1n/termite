@@ -39,7 +39,7 @@ spinner := termite.NewSpinner(termite.StdoutWriter, "Processing...", refreshInte
 if err := spinner.Start(ctx); err == nil {
   doWork()
   
-  _ = spinner.Stop("Done!")
+  _ = spinner.Stop(context.Background(), "Done!")
 }
 ```
 

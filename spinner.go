@@ -56,7 +56,7 @@ func (f *SimpleSpinnerFormatter) CharSeq() []string {
 // Spinner a spinning progress indicator
 type Spinner interface {
 	Start(context.Context) error
-	Stop(string) error
+	Stop(ctx context.Context, message string) error
 	SetTitle(title string) error
 }
 
@@ -211,16 +211,20 @@ func (s *spinner) Start(ctx context.Context) (err error) {
 }
 
 // Stop stops the spinner and displays the specified message
-func (s *spinner) Stop(message string) (err error) {
+func (s *spinner) Stop(ctx context.Context, message string) (err error) {
 	s.stateMx.Lock()
 	defer s.stateMx.Unlock()
 
 	if !s.active {
 		err = errors.New("spinner not active")
 	} else {
-		s.stopC <- true
-		s.active = false
-		s.printExitMessage(message)
+		select {
+		case s.stopC <- true:
+			s.active = false
+			s.printExitMessage(message)
+		case <-ctx.Done():
+			err = ctx.Err()
+		}
 	}
 
 	return err

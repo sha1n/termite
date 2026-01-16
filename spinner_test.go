@@ -78,7 +78,7 @@ func TestSpinnerTitles(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		_ = spin.Start(ctx)
-		_ = spin.Stop("")
+		_ = spin.Stop(context.Background(), "")
 
 		assert.Error(t, spin.SetTitle("new title"))
 	})
@@ -106,8 +106,8 @@ func TestSpinnerErrors(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
 				_ = spin.Start(ctx)
-				assert.NoError(t, spin.Stop(""))
-				assert.Error(t, spin.Stop(""))
+				assert.NoError(t, spin.Stop(context.Background(), ""))
+				assert.Error(t, spin.Stop(context.Background(), ""))
 			},
 		},
 		{
@@ -138,7 +138,7 @@ func TestSpinnerStopMessage(t *testing.T) {
 	err := spin.Start(ctx)
 	assert.NoError(t, err)
 
-	err = spin.Stop(expectedStopMessage)
+	err = spin.Stop(context.Background(), expectedStopMessage)
 	assert.NoError(t, err)
 
 	assertBufferEventuallyContains(t, emulatedStdout, expectedStopMessage)
