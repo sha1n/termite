@@ -1,4 +1,5 @@
 [![Go](https://github.com/sha1n/termite/actions/workflows/go.yml/badge.svg)](https://github.com/sha1n/termite/actions/workflows/go.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/sha1n/termite.svg)](https://pkg.go.dev/github.com/sha1n/termite)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/sha1n/termite)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sha1n/termite)](https://goreportcard.com/report/github.com/sha1n/termite)
 [![Coverage Status](https://coveralls.io/repos/github/sha1n/termite/badge.svg?branch=master&service=github)](https://coveralls.io/github/sha1n/termite?branch=master)

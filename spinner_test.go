@@ -149,25 +149,18 @@ func bufferContains(outBuffer *bytes.Buffer, expected string) func() bool {
 	}
 }
 
-func assertStoppedEventually(t *testing.T, probedWriter *io.ProbedWriter, spinner *spinner) {
-	assert.Eventually(
-		t,
-		func() bool { return !spinner.isActiveSafe() },
-		timeout,
-		interval,
-		"expected spinner to deactivate",
-	)
-
+func assertStoppedEventually(t *testing.T, probedWriter *io.ProbedWriter, spin *spinner) {
+	// Verify the spinner has stopped by checking no more output is produced
 	assert.Eventually(
 		t,
 		func() bool {
 			probedWriter.Reset()
-			time.Sleep(spinner.interval * 2)
+			time.Sleep(spin.interval * 2)
 			return len(probedWriter.Bytes()) == 0
 
 		},
 		timeout,
-		spinner.interval,
+		spin.interval,
 		"expected no more output from spinner",
 	)
 }

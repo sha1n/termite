@@ -255,17 +255,3 @@ func (b *bar) render(message string) bool {
 
 	return b.maxTicks > b.ticks
 }
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
