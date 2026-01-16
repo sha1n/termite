@@ -16,6 +16,7 @@
   - [Examples](#examples)
     - [Spinner](#spinner)
     - [Progress Bar](#progress-bar)
+    - [Matrix](#matrix)
   - [Showcase](#showcase)
 
 # TERMite
@@ -53,6 +54,30 @@ progressBar := termite.NewProgressBar(termite.StdoutWriter, tickCount, width, te
 if tick, err := progressBar.Start(ctx); err == nil {
   doWork(tick)
 }
+```
+
+### Matrix
+```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+refreshInterval := time.Millisecond * 100
+matrix := termite.NewMatrix(termite.StdoutWriter, refreshInterval)
+done := matrix.Start(ctx)
+
+// Allocate rows for concurrent tasks
+rows := matrix.NewRange(3)
+for i, row := range rows {
+  go func(idx int, r termite.MatrixRow) {
+    r.Update(fmt.Sprintf("Task %d: Running...", idx+1))
+    doWork()
+    r.Update(fmt.Sprintf("Task %d: Done!", idx+1))
+  }(i, row)
+}
+
+// Wait for completion
+cancel()
+<-done
 ```
 
 ## Showcase
