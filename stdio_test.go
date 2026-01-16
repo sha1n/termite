@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/sha1n/gommons/pkg/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +22,7 @@ func TestNewAutoFlushingWriter(t *testing.T) {
 // and has been introduced to reproduce and solve a bug.
 func TestWriteString(t *testing.T) {
 	buf := new(bytes.Buffer)
-	example := generateRandomString()
+	example := test.RandomString()
 	expected := []byte(example)
 
 	writer := NewAutoFlushingWriter(buf)
@@ -31,5 +32,5 @@ func TestWriteString(t *testing.T) {
 }
 
 func randomBytes() []byte {
-	return []byte(generateRandomString())
+	return []byte(test.RandomString())
 }
