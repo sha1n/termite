@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sha1n/gommons/pkg/io"
+	"github.com/sha1n/gommons/pkg/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,34 +47,89 @@ func TestSpinnerCancellation(t *testing.T) {
 	assertStoppedEventually(t, probedWriter, spin.(*spinner))
 }
 
-func TestSpinnerStartAlreadyRunning(t *testing.T) {
-	emulatedStdout := new(bytes.Buffer)
+func TestSpinnerTitles(t *testing.T) {
+	t.Run("InitialTitle", func(t *testing.T) {
+		expectedTitle := test.RandomString()
+		emulatedStdout := new(bytes.Buffer)
+		spin := NewSpinner(emulatedStdout, expectedTitle, interval, DefaultSpinnerFormatter())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		_ = spin.Start(ctx)
 
-	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
-	ctx, cancel := context.WithCancel(context.Background())
-	_ = spin.Start(ctx)
-	defer cancel()
+		assertBufferEventuallyContains(t, emulatedStdout, expectedTitle)
+	})
 
-	err := spin.Start(ctx)
-	assert.Error(t, err)
+	t.Run("SetTitle", func(t *testing.T) {
+		expectedInitialTitle := test.RandomString()
+		expectedUpdatedTitle := test.RandomString()
+		emulatedStdout := new(bytes.Buffer)
+		spin := NewSpinner(emulatedStdout, expectedInitialTitle, interval, DefaultSpinnerFormatter())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		_ = spin.Start(ctx)
+
+		assertBufferEventuallyContains(t, emulatedStdout, expectedInitialTitle)
+		assert.NoError(t, spin.SetTitle(expectedUpdatedTitle))
+		assertBufferEventuallyContains(t, emulatedStdout, expectedUpdatedTitle)
+	})
+
+	t.Run("SetTitleOnStoppedSpinner", func(t *testing.T) {
+		spin := NewSpinner(new(bytes.Buffer), "title", interval, DefaultSpinnerFormatter())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		_ = spin.Start(ctx)
+		_ = spin.Stop("")
+
+		assert.Error(t, spin.SetTitle("new title"))
+	})
 }
 
-func TestSpinnerStopAlreadyStopped(t *testing.T) {
-	emulatedStdout := new(bytes.Buffer)
+func TestSpinnerErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		run  func(t *testing.T)
+	}{
+		{
+			name: "StartAlreadyRunning",
+			run: func(t *testing.T) {
+				spin := NewSpinner(new(bytes.Buffer), "", interval, DefaultSpinnerFormatter())
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+				_ = spin.Start(ctx)
+				assert.Error(t, spin.Start(ctx))
+			},
+		},
+		{
+			name: "StopAlreadyStopped",
+			run: func(t *testing.T) {
+				spin := NewSpinner(new(bytes.Buffer), "", interval, DefaultSpinnerFormatter())
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+				_ = spin.Start(ctx)
+				assert.NoError(t, spin.Stop(""))
+				assert.Error(t, spin.Stop(""))
+			},
+		},
+		{
+			name: "StartWithCancelledContext",
+			run: func(t *testing.T) {
+				spin := NewSpinner(new(bytes.Buffer), "", interval, DefaultSpinnerFormatter())
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				err := spin.Start(ctx)
+				assert.Error(t, err)
+				assert.Equal(t, context.Canceled, err)
+			},
+		},
+	}
 
-	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	_ = spin.Start(ctx)
-
-	err := spin.Stop("")
-	assert.NoError(t, err)
-
-	assert.Error(t, spin.Stop(""), "expected error on second stop")
+	for _, tt := range tests {
+		t.Run(tt.name, tt.run)
+	}
 }
 
 func TestSpinnerStopMessage(t *testing.T) {
-	expectedStopMessage := generateRandomString()
+	expectedStopMessage := test.RandomString()
 	emulatedStdout := new(bytes.Buffer)
 
 	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
@@ -87,51 +143,6 @@ func TestSpinnerStopMessage(t *testing.T) {
 
 	assertBufferEventuallyContains(t, emulatedStdout, expectedStopMessage)
 	assert.NotContains(t, emulatedStdout.String(), "\n", "line feed is expected!")
-}
-
-func TestSpinnerTitle(t *testing.T) {
-	expectedTitle := generateRandomString()
-	emulatedStdout := new(bytes.Buffer)
-
-	spin := NewSpinner(emulatedStdout, expectedTitle, interval, DefaultSpinnerFormatter())
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	_ = spin.Start(ctx)
-
-	assertBufferEventuallyContains(t, emulatedStdout, expectedTitle)
-}
-
-func TestSpinnerSetTitle(t *testing.T) {
-	expectedInitialTitle := generateRandomString()
-	expectedUpdatedTitle := generateRandomString()
-	emulatedStdout := new(bytes.Buffer)
-
-	spin := NewSpinner(emulatedStdout, expectedInitialTitle, interval, DefaultSpinnerFormatter())
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	_ = spin.Start(ctx)
-
-	assertBufferEventuallyContains(t, emulatedStdout, expectedInitialTitle)
-
-	assert.NoError(t, spin.SetTitle(expectedUpdatedTitle))
-
-	assertBufferEventuallyContains(t, emulatedStdout, expectedUpdatedTitle)
-}
-
-func TestSpinnerSetTitleOnStoppedSpinner(t *testing.T) {
-	expectedInitialTitle := generateRandomString()
-	expectedUpdatedTitle := generateRandomString()
-	emulatedStdout := new(bytes.Buffer)
-
-	spin := NewSpinner(emulatedStdout, expectedInitialTitle, interval, DefaultSpinnerFormatter())
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	_ = spin.Start(ctx)
-
-	assertBufferEventuallyContains(t, emulatedStdout, expectedInitialTitle)
-
-	assert.NoError(t, spin.Stop(""))
-	assert.Error(t, spin.SetTitle(expectedUpdatedTitle))
 }
 
 func assertBufferEventuallyContains(t *testing.T, outBuffer *bytes.Buffer, expected string) {
@@ -184,16 +195,4 @@ func stripControlCharacters(input string) string {
 	controlCharsRegex := regexp.MustCompile(`[[:cntrl:]]|\[|K`)
 
 	return controlCharsRegex.ReplaceAllString(input, "")
-}
-
-func TestSpinnerStartWithCancelledContext(t *testing.T) {
-	emulatedStdout := new(bytes.Buffer)
-
-	spin := NewSpinner(emulatedStdout, "", interval, DefaultSpinnerFormatter())
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // Cancel before starting
-
-	err := spin.Start(ctx)
-	assert.Error(t, err)
-	assert.Equal(t, context.Canceled, err)
 }
