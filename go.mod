@@ -10,6 +10,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20
 	github.com/sha1n/gommons v0.0.19
 	github.com/stretchr/testify v1.11.1
+	golang.org/x/text v0.33.0
 )
 
 require (
