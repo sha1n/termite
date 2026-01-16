@@ -47,6 +47,23 @@ func TestSpinnerCancellation(t *testing.T) {
 	assertStoppedEventually(t, probedWriter, spin.(*spinner))
 }
 
+func TestSpinnerBuilder(t *testing.T) {
+	expectedTitle := test.RandomString()
+	expectedInterval := time.Millisecond * 123
+	emulatedStdout := new(bytes.Buffer)
+
+	spin := NewSpinnerBuilder().
+		WithWriter(emulatedStdout).
+		WithTitle(expectedTitle).
+		WithInterval(expectedInterval).
+		Build()
+
+	s := spin.(*spinner)
+	assert.Equal(t, emulatedStdout, s.writer)
+	assert.Equal(t, expectedTitle, s.title)
+	assert.Equal(t, expectedInterval, s.interval)
+}
+
 func TestSpinnerTitles(t *testing.T) {
 	t.Run("InitialTitle", func(t *testing.T) {
 		expectedTitle := test.RandomString()
