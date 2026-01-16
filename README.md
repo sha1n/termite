@@ -41,6 +41,14 @@ if err := spinner.Start(ctx); err == nil {
   
   _ = spinner.Stop(context.Background(), "Done!")
 }
+
+// Or using the fluent builder
+builder := termite.NewSpinnerBuilder().
+	WithTitle("Processing...").
+	WithInterval(time.Millisecond * 100)
+
+spinner := builder.Build()
+_ = spinner.Start(ctx)
 ```
 
 ### Progress Bar
@@ -48,8 +56,8 @@ if err := spinner.Start(ctx); err == nil {
 ctx, cancel := context.WithCancel(context.Background())
 defer cancel()
 
-termWidth, _, _ := termite.GetTerminalDimensions()
-progressBar := termite.NewProgressBar(termite.StdoutWriter, tickCount, width, termWidth, termite.DefaultProgressBarFormatter())
+termWidthFn := func() int { w, _, _ := termite.GetTerminalDimensions(); return w }
+progressBar := termite.NewProgressBar(termite.StdoutWriter, tickCount, termWidthFn, width, termite.DefaultProgressBarFormatter())
 
 if tick, err := progressBar.Start(ctx); err == nil {
   doWork(tick)
