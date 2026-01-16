@@ -30,39 +30,39 @@ func NewCursor(writer io.Writer) Cursor {
 }
 
 func (c cursor) Position(row, col int) {
-	c.writeString(fmt.Sprintf("\033[%d;%dH", row, col))
+	c.writeString(fmt.Sprintf(termControlCursorPositionFmt, row, col))
 }
 
 func (c cursor) Up(lines int) {
-	c.writeString(fmt.Sprintf("\033[%dA", lines))
+	c.writeString(fmt.Sprintf(termControlCursorUpFmt, lines))
 }
 
 func (c cursor) Down(lines int) {
-	c.writeString(fmt.Sprintf("\033[%dB", lines))
+	c.writeString(fmt.Sprintf(termControlCursorDownFmt, lines))
 }
 
 func (c cursor) Forward(cols int) {
-	c.writeString(fmt.Sprintf("\033[%dC", cols))
+	c.writeString(fmt.Sprintf(termControlCursorForwardFmt, cols))
 }
 
 func (c cursor) Backward(cols int) {
-	c.writeString(fmt.Sprintf("\033[%dD", cols))
+	c.writeString(fmt.Sprintf(termControlCursorBackwardFmt, cols))
 }
 
 func (c cursor) Hide() {
-	c.writeString("\033[?25l")
+	c.writeString(termControlCursorHide)
 }
 
 func (c cursor) Show() {
-	c.writeString("\033[?25h")
+	c.writeString(termControlCursorShow)
 }
 
 func (c cursor) SavePosition() {
-	c.writeString("\033[s")
+	c.writeString(termControlCursorSave)
 }
 
 func (c cursor) RestorePosition() {
-	c.writeString("\033[u")
+	c.writeString(termControlCursorRestore)
 }
 
 func (c cursor) writeString(s string) {

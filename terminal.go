@@ -22,10 +22,10 @@ var (
 
 const (
 	// TermControlEraseLine clears the current line and positions the cursor at the beginning
-	TermControlEraseLine = "\r\033[K"
+	TermControlEraseLine = "\r" + termControlEraseLine
 
 	// TermControlClearScreen emulates the bash/sh clear command
-	TermControlClearScreen = "\033[H\033[2J"
+	TermControlClearScreen = termControlClearScreen
 
 	// TermControlCRLF line feed
 	TermControlCRLF = "\r\n"
