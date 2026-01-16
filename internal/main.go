@@ -98,7 +98,6 @@ func demoMatrix(ctx *demoContext) {
 		row.Update(fmt.Sprintf("- Matrix Task %d - %s", rowIndex+1, status))
 	}
 
-	rand.Seed(time.Now().UnixNano())
 	indexes := []int{0, 1, 2, 3, 4}
 	// update the matrix
 	for _, status := range progressPhases {
