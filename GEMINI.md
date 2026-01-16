@@ -14,7 +14,7 @@ Terminal app utilities library for Go - provides progress bars, spinners, cursor
 ## Build & Verify
 ```bash
 make format lint test   # Run all checks
-go run ./internal       # Run demo
+go run ./cmd/demo       # Run demo
 ```
 
 ## Testing Conventions
