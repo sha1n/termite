@@ -146,7 +146,7 @@ func demoSpinner(ctx *demoContext) {
 	}
 	time.Sleep(time.Second)
 	for _, spinner := range spinners {
-		_ = spinner.Stop("- Done " + taskDoneMarkUniChar)
+		_ = spinner.Stop(context.Background(), "- Done "+taskDoneMarkUniChar)
 	}
 
 	cancel()
