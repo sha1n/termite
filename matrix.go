@@ -45,6 +45,11 @@ type MatrixCellID struct {
 	row int
 }
 
+// Row returns the row index associated with this ID
+func (id MatrixCellID) Row() int {
+	return id.row
+}
+
 // MatrixRow an accessor to a line in a Matrix structure
 // Line feed and return characters are trimmed from written strings to prevent breaking the layout of the matrix.
 type MatrixRow interface {
