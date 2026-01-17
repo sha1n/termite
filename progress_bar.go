@@ -17,7 +17,7 @@ const (
 	DefaultProgressBarRightBorder = '\u2595'
 
 	// DefaultProgressBarFill default progress bar fill character
-	DefaultProgressBarFill = '\u2587'
+	DefaultProgressBarFill = '\u2588'
 
 	// DefaultProgressBarBlank default progress bar fill character
 	DefaultProgressBarBlank = '\u2591'
