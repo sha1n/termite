@@ -186,7 +186,7 @@ func (b *bar) Start(ctx context.Context) (tick TickMessageFn, err error) {
 	b.mx.Lock()
 
 	if b.active {
-		return nil, errors.New("Progress bar already running in the background")
+		return nil, errors.New("progress bar already running in the background")
 	}
 
 	if ctx.Err() != nil {
