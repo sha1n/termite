@@ -37,7 +37,7 @@ func NewAutoFlushingWriter(w io.Writer) *AutoFlushingWriter {
 }
 
 func (sw *AutoFlushingWriter) Write(b []byte) (int, error) {
-	defer sw.Writer.Flush()
+	defer func() { _ = sw.Writer.Flush() }()
 	return sw.Writer.Write(b)
 }
 

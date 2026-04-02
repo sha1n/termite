@@ -196,7 +196,7 @@ func assertStoppedEventually(t *testing.T, probedWriter *io.ProbedWriter, spin *
 func assertSpinnerCharSequence(t *testing.T, probedWriter *io.ProbedWriter) {
 	charSeq := DefaultSpinnerCharSeq()
 	expectedCharSequence := strings.Join(charSeq, "")
-	var read string = ""
+	var read = ""
 
 	for {
 		read = stripControlCharacters(probedWriter.String())

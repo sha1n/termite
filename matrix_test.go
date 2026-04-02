@@ -30,10 +30,10 @@ func TestMatrixUpdatesTerminalOutput(t *testing.T) {
 
 	matrix.NewRow().Update(examples[0])
 	row2 := matrix.NewRow()
-	row2.WriteString(examples[1])
+	_, _ = row2.WriteString(examples[1])
 	examples[1] = test.RandomString()
 	matrix.NewRow().Update(examples[2])
-	row2.WriteString(examples[1])
+	_, _ = row2.WriteString(examples[1])
 
 	assertEventualSequence(t, matrix, expectedRewriteSequenceFor(examples))
 }

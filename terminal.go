@@ -33,17 +33,17 @@ const (
 
 // Print utility function for printing an object into StdoutWritter
 func Print(e interface{}) {
-	io.WriteString(StdoutWriter, fmt.Sprintf("%v", e))
+	_, _ = io.WriteString(StdoutWriter, fmt.Sprintf("%v", e))
 }
 
 // Println utility function for printing a new line into StdoutWritter
 func Println(e interface{}) {
-	io.WriteString(StdoutWriter, fmt.Sprintf("%v%s", e, TermControlCRLF))
+	_, _ = io.WriteString(StdoutWriter, fmt.Sprintf("%v%s", e, TermControlCRLF))
 }
 
 // AllocateNewLines utility function for starting a number of new empty lines on StdoutWriter
 func AllocateNewLines(count int) {
-	io.WriteString(StdoutWriter, strings.Repeat("\n", count))
+	_, _ = io.WriteString(StdoutWriter, strings.Repeat("\n", count))
 	NewCursor(StdoutWriter).Up(count) // return to start position
 }
 

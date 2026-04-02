@@ -106,10 +106,8 @@ func testProgressBarWith(t *testing.T, termWidthFn func() int, width, maxTicks i
 	bar := NewProgressBar(emulatedStdout, maxTicks, termWidthFn, width, DefaultProgressBarFormatter())
 
 	var count = 0
-	for {
-		if !bar.Tick() {
-			break
-		}
+	for bar.Tick() {
+
 		count++
 	}
 

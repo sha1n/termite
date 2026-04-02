@@ -13,7 +13,7 @@ func TestNewAutoFlushingWriter(t *testing.T) {
 	expected := randomBytes()
 
 	writer := NewAutoFlushingWriter(buf)
-	writer.Write(expected)
+	_, _ = writer.Write(expected)
 
 	assert.Equal(t, expected, buf.Bytes())
 }
@@ -26,7 +26,7 @@ func TestWriteString(t *testing.T) {
 	expected := []byte(example)
 
 	writer := NewAutoFlushingWriter(buf)
-	writer.WriteString(example)
+	_, _ = writer.WriteString(example)
 
 	assert.Equal(t, expected, buf.Bytes())
 }

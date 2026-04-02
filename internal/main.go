@@ -142,7 +142,7 @@ func demoSpinner(ctx *demoContext) {
 	}
 	time.Sleep(time.Second)
 	for _, spinner := range spinners {
-		spinner.SetTitle("Finishing...")
+		_ = spinner.SetTitle("Finishing...")
 	}
 	time.Sleep(time.Second)
 	for _, spinner := range spinners {
